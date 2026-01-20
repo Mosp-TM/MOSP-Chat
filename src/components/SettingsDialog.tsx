@@ -71,6 +71,17 @@ const SettingsDialog: React.FC = () => {
     setOpen(false);
   };
 
+  const handleClearSettings = () => {
+    if (
+      confirm(
+        "Are you sure you want to reset all settings? This will reload the app.",
+      )
+    ) {
+      localStorage.clear();
+      window.location.reload();
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger>
@@ -131,11 +142,18 @@ const SettingsDialog: React.FC = () => {
           )}
         </div>
         <DialogFooter>
-          <button
-            onClick={handleSave}
-            className="inline-flex items-center justify-center rounded-md text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2">
-            Save Changes
-          </button>
+          <div className="flex w-full gap-2 flex-col sm:flex-row sm:justify-between">
+            <button
+              onClick={handleClearSettings}
+              className="inline-flex items-center justify-center rounded-md text-sm font-medium border border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground h-10 px-4 py-2">
+              Clear Settings
+            </button>
+            <button
+              onClick={handleSave}
+              className="inline-flex items-center justify-center rounded-md text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2">
+              Save Changes
+            </button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>
