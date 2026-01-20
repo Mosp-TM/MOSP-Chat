@@ -59,6 +59,10 @@
     }
   </script>
   <style type="text/tailwindcss">
+    @tailwind base;
+    @tailwind components;
+    @tailwind utilities;
+    
     @layer base {
       :root {
         --background: 0 0% 100%;
@@ -103,8 +107,13 @@
         --input: 240 3.7% 15.9%;
         --ring: 262 83% 58%;
       }
-      * { @apply border-border; }
-      body { @apply bg-background text-foreground; }
+      * { 
+        border-color: hsl(var(--border)); 
+      }
+      body { 
+        background-color: hsl(var(--background)); 
+        color: hsl(var(--foreground)); 
+      }
     }
 
     @layer utilities {
@@ -119,27 +128,54 @@
 
     /* Markdown content styling */
     .message-content h1, .message-content h2, .message-content h3 {
-      @apply font-semibold mt-4 mb-2;
+      font-weight: 600;
+      margin-top: 1rem;
+      margin-bottom: 0.5rem;
     }
-    .message-content p { @apply my-2; }
-    .message-content code { @apply bg-muted px-1.5 py-0.5 rounded font-mono text-sm; }
-    .message-content pre { @apply bg-muted p-4 rounded-lg overflow-x-auto my-3; }
-    .message-content pre code { @apply bg-transparent p-0; }
-    .message-content ul, .message-content ol { @apply my-2 pl-6; }
-    .message-content ul { @apply list-disc; }
-    .message-content ol { @apply list-decimal; }
-    .message-content blockquote { @apply border-l-4 border-primary/50 pl-4 my-2 italic; }
+    .message-content p { margin-top: 0.5rem; margin-bottom: 0.5rem; }
+    .message-content code { 
+      background-color: hsl(var(--muted)); 
+      padding: 0.125rem 0.375rem;
+      border-radius: 0.25rem;
+      font-family: monospace;
+      font-size: 0.875rem;
+    }
+    .message-content pre { 
+      background-color: hsl(var(--muted)); 
+      padding: 1rem;
+      border-radius: 0.5rem;
+      overflow-x: auto;
+      margin: 0.75rem 0;
+    }
+    .message-content pre code { background-color: transparent; padding: 0; }
+    .message-content ul, .message-content ol { margin: 0.5rem 0; padding-left: 1.5rem; }
+    .message-content ul { list-style-type: disc; }
+    .message-content ol { list-style-type: decimal; }
+    .message-content blockquote { 
+      border-left: 4px solid hsla(var(--primary) / 0.5);
+      padding-left: 1rem;
+      margin: 0.5rem 0;
+      font-style: italic;
+    }
     
     /* Support for DeepSeek <think> tags */
     think {
-      @apply block bg-muted/50 text-muted-foreground text-sm italic border-l-2 border-muted px-3 py-2 my-2 rounded-r-sm;
+      display: block;
+      background-color: hsla(var(--muted) / 0.5);
+      color: hsl(var(--muted-foreground));
+      font-size: 0.875rem;
+      font-style: italic;
+      border-left: 2px solid hsl(var(--muted));
+      padding: 0.5rem 0.75rem;
+      margin: 0.5rem 0;
+      border-radius: 0 0.125rem 0.125rem 0;
     }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/marked@11.1.1/marked.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-  <script type="module" src="main.js" defer></script>
+  <script type="module" src="/main.tsx"></script>
 </head>
 <body>
-  <div id="app"></div>
+  <div id="root"></div>
 </body>
 </html>
