@@ -13,6 +13,7 @@ interface AppState {
   activePane: "primary" | "secondary";
   primaryChatId: string | null;
   secondaryChatId: string | null;
+  lastSplitState: { primaryChatId: string; secondaryChatId: string } | null;
 
   // Actions
   completeSetup: () => void;
@@ -31,9 +32,11 @@ interface AppState {
 
   // Split View Actions
   enableSplitView: (chatId: string) => void;
-  closeSplitView: () => void;
+  closeSplitView: () => void; // Keeps current primary as single
   setPaneChat: (pane: "primary" | "secondary", chatId: string) => void;
   setActivePane: (pane: "primary" | "secondary") => void;
+  selectChat: (chatId: string) => void; // Smart navigation
+  maximizePane: (pane: "primary" | "secondary") => void; // Close split and keep pane
 }
 
 interface Chat {
@@ -68,6 +71,7 @@ export const useAppStore = create<AppState>()(
       activePane: "primary",
       primaryChatId: null,
       secondaryChatId: null,
+      lastSplitState: null,
 
       // Actions
       completeSetup: () => set({ hasCompletedSetup: true }),
@@ -129,6 +133,12 @@ export const useAppStore = create<AppState>()(
             secondaryChatId:
               state.secondaryChatId === chatId ? null : state.secondaryChatId,
             layout: state.secondaryChatId === chatId ? "single" : state.layout, // Close split if secondary deleted
+            lastSplitState:
+              state.lastSplitState &&
+              (state.lastSplitState.primaryChatId === chatId ||
+                state.lastSplitState.secondaryChatId === chatId)
+                ? null
+                : state.lastSplitState,
           };
         }),
 
@@ -144,6 +154,10 @@ export const useAppStore = create<AppState>()(
           layout: "split",
           secondaryChatId: chatId,
           activePane: "secondary",
+          lastSplitState: {
+            primaryChatId: state.primaryChatId!,
+            secondaryChatId: chatId,
+          },
         })),
 
       closeSplitView: () =>
@@ -166,6 +180,75 @@ export const useAppStore = create<AppState>()(
           activePane: pane,
           currentChatId:
             pane === "primary" ? state.primaryChatId : state.secondaryChatId,
+        })),
+
+      selectChat: (chatId) =>
+        set((state) => {
+          // If in split view and clicking one of the open chats
+          if (state.layout === "split") {
+            if (chatId === state.primaryChatId) {
+              return { activePane: "primary", currentChatId: chatId };
+            }
+            if (chatId === state.secondaryChatId) {
+              return { activePane: "secondary", currentChatId: chatId };
+            }
+            // Clicking a new chat while in split view -> Switch to Single View with this chat
+            // AND save the current split state
+            return {
+              layout: "single",
+              primaryChatId: chatId,
+              currentChatId: chatId,
+              activePane: "primary",
+              lastSplitState:
+                state.primaryChatId && state.secondaryChatId
+                  ? {
+                      primaryChatId: state.primaryChatId,
+                      secondaryChatId: state.secondaryChatId,
+                    }
+                  : state.lastSplitState,
+            };
+          } else {
+            // In Single View
+            // Check if this chat was part of a stored split state
+            if (state.lastSplitState) {
+              const { primaryChatId, secondaryChatId } = state.lastSplitState;
+              if (chatId === primaryChatId || chatId === secondaryChatId) {
+                // RESTORE SPLIT VIEW
+                return {
+                  layout: "split",
+                  primaryChatId,
+                  secondaryChatId,
+                  activePane:
+                    chatId === primaryChatId ? "primary" : "secondary",
+                  currentChatId: chatId,
+                };
+              }
+            }
+
+            // Standard switch in single view
+            return {
+              primaryChatId: chatId,
+              currentChatId: chatId,
+              activePane: "primary",
+            };
+          }
+        }),
+
+      maximizePane: (pane) =>
+        set((state) => ({
+          layout: "single",
+          primaryChatId:
+            pane === "primary" ? state.primaryChatId : state.secondaryChatId,
+          currentChatId:
+            pane === "primary" ? state.primaryChatId : state.secondaryChatId,
+          activePane: "primary",
+          lastSplitState:
+            state.primaryChatId && state.secondaryChatId
+              ? {
+                  primaryChatId: state.primaryChatId,
+                  secondaryChatId: state.secondaryChatId,
+                }
+              : null,
         })),
     }),
     {

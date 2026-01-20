@@ -18,7 +18,7 @@ const Sidebar: React.FC = () => {
     chats,
     addChat,
     currentChatId,
-    setCurrentChatId,
+    selectChat,
     deleteChat,
     isSidebarOpen,
     toggleSidebar,
@@ -58,7 +58,7 @@ const Sidebar: React.FC = () => {
             chat={chat}
             isActive={currentChatId === chat.id}
             isSidebarOpen={isSidebarOpen}
-            onSelect={() => setCurrentChatId(chat.id)}
+            onSelect={() => selectChat(chat.id)}
             onDelete={() => deleteChat(chat.id)}
           />
         ))}

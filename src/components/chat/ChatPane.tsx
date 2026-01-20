@@ -31,6 +31,8 @@ const ChatPane: React.FC<ChatPaneProps> = ({
     updateChatConfig,
     provider: globalProvider,
     model: globalModel,
+    layout,
+    maximizePane,
   } = useAppStore();
 
   const currentChat = chats.find((c) => c.id === chatId);
@@ -159,7 +161,12 @@ const ChatPane: React.FC<ChatPaneProps> = ({
       <div
         className={`flex-1 flex flex-col h-full relative border-l ${isActive ? "ring-2 ring-primary/10" : ""}`}
         onClick={onFocus}>
-        <ChatHeader title="Muradian AI" provider={provider} model={model} />
+        <ChatHeader
+          title="Muradian AI"
+          provider={provider}
+          model={model}
+          onMaximize={layout === "split" ? () => maximizePane(pane) : undefined}
+        />
 
         <div className="flex-1 overflow-auto p-4 space-y-4">
           <div className="h-full flex flex-col items-center justify-center text-muted-foreground opacity-50">
@@ -190,6 +197,7 @@ const ChatPane: React.FC<ChatPaneProps> = ({
         title={currentChat?.title}
         provider={provider}
         model={model}
+        onMaximize={layout === "split" ? () => maximizePane(pane) : undefined}
       />
 
       <div className="flex-1 overflow-auto p-4 space-y-4">
