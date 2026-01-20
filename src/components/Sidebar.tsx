@@ -1,10 +1,11 @@
 import React from "react";
-import { Plus, MessageSquare } from "lucide-react";
+import { Plus, MessageSquare, Trash2 } from "lucide-react";
 import SettingsDialog from "./SettingsDialog";
 import { useAppStore, type Chat } from "../store/appStore";
 
 const Sidebar: React.FC = () => {
-  const { chats, addChat, currentChatId, setCurrentChatId } = useAppStore();
+  const { chats, addChat, currentChatId, setCurrentChatId, deleteChat } =
+    useAppStore();
 
   const handleNewChat = () => {
     const newChat: Chat = {
@@ -27,15 +28,27 @@ const Sidebar: React.FC = () => {
 
       <div className="flex-1 overflow-auto p-2 space-y-1">
         {chats.map((chat) => (
-          <button
+          <div
             key={chat.id}
-            onClick={() => setCurrentChatId(chat.id)}
-            className={`w-full flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors hover:bg-muted ${
+            className={`group w-full flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors hover:bg-muted ${
               currentChatId === chat.id ? "bg-muted font-medium" : ""
             }`}>
-            <MessageSquare className="h-4 w-4" />
-            <span className="truncate">{chat.title || "Untitled Chat"}</span>
-          </button>
+            <button
+              onClick={() => setCurrentChatId(chat.id)}
+              className="flex-1 flex items-center gap-2 overflow-hidden text-left">
+              <MessageSquare className="h-4 w-4 shrink-0" />
+              <span className="truncate">{chat.title || "Untitled Chat"}</span>
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                deleteChat(chat.id);
+              }}
+              className="opacity-0 group-hover:opacity-100 p-1 hover:text-destructive transition-opacity"
+              title="Delete Chat">
+              <Trash2 className="h-4 w-4" />
+            </button>
+          </div>
         ))}
       </div>
 

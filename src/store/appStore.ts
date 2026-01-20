@@ -18,6 +18,7 @@ interface AppState {
   setCurrentChatId: (id: string | null) => void;
   addMessage: (chatId: string, message: Message) => void;
   updateChatTitle: (chatId: string, title: string) => void;
+  deleteChat: (chatId: string) => void;
   getApiKey: (provider: string) => string;
 }
 
@@ -78,6 +79,16 @@ export const useAppStore = create<AppState>()(
             chat.id === chatId ? { ...chat, title } : chat,
           ),
         })),
+
+      deleteChat: (chatId) =>
+        set((state) => {
+          const newChats = state.chats.filter((chat) => chat.id !== chatId);
+          const isCurrentChat = state.currentChatId === chatId;
+          return {
+            chats: newChats,
+            currentChatId: isCurrentChat ? null : state.currentChatId,
+          };
+        }),
 
       // Helpers
       getApiKey: (provider) => get().apiKeys[provider] || "",
