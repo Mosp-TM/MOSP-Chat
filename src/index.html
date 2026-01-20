@@ -2,31 +2,139 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <link rel="stylesheet" href="styles.css" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Ollama Chat</title>
-  <script type="module" src="/main.js" defer></script>
+  <title>Muradian AI</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: ["class"],
+      theme: {
+        extend: {
+          colors: {
+            border: "hsl(var(--border))",
+            input: "hsl(var(--input))",
+            ring: "hsl(var(--ring))",
+            background: "hsl(var(--background))",
+            foreground: "hsl(var(--foreground))",
+            primary: {
+              DEFAULT: "hsl(var(--primary))",
+              foreground: "hsl(var(--primary-foreground))",
+            },
+            secondary: {
+              DEFAULT: "hsl(var(--secondary))",
+              foreground: "hsl(var(--secondary-foreground))",
+            },
+            destructive: {
+              DEFAULT: "hsl(var(--destructive))",
+              foreground: "hsl(var(--destructive-foreground))",
+            },
+            muted: {
+              DEFAULT: "hsl(var(--muted))",
+              foreground: "hsl(var(--muted-foreground))",
+            },
+            accent: {
+              DEFAULT: "hsl(var(--accent))",
+              foreground: "hsl(var(--accent-foreground))",
+            },
+            popover: {
+              DEFAULT: "hsl(var(--popover))",
+              foreground: "hsl(var(--popover-foreground))",
+            },
+            card: {
+              DEFAULT: "hsl(var(--card))",
+              foreground: "hsl(var(--card-foreground))",
+            },
+          },
+          borderRadius: {
+            lg: "var(--radius)",
+            md: "calc(var(--radius) - 2px)",
+            sm: "calc(var(--radius) - 4px)",
+          },
+          animation: {
+            slideIn: "slideIn 0.3s ease-out",
+          },
+        }
+      }
+    }
+  </script>
+  <style type="text/tailwindcss">
+    @layer base {
+      :root {
+        --background: 0 0% 100%;
+        --foreground: 240 10% 3.9%;
+        --card: 0 0% 100%;
+        --card-foreground: 240 10% 3.9%;
+        --popover: 0 0% 100%;
+        --popover-foreground: 240 10% 3.9%;
+        --primary: 262 83% 58%;
+        --primary-foreground: 0 0% 98%;
+        --secondary: 240 4.8% 95.9%;
+        --secondary-foreground: 240 5.9% 10%;
+        --muted: 240 4.8% 95.9%;
+        --muted-foreground: 240 3.8% 46.1%;
+        --accent: 240 4.8% 95.9%;
+        --accent-foreground: 240 5.9% 10%;
+        --destructive: 0 84.2% 60.2%;
+        --destructive-foreground: 0 0% 98%;
+        --border: 240 5.9% 90%;
+        --input: 240 5.9% 90%;
+        --ring: 262 83% 58%;
+        --radius: 0.5rem;
+      }
+      .dark {
+        --background: 240 10% 3.9%;
+        --foreground: 0 0% 98%;
+        --card: 240 10% 3.9%;
+        --card-foreground: 0 0% 98%;
+        --popover: 240 10% 3.9%;
+        --popover-foreground: 0 0% 98%;
+        --primary: 262 83% 58%;
+        --primary-foreground: 0 0% 98%;
+        --secondary: 240 3.7% 15.9%;
+        --secondary-foreground: 0 0% 98%;
+        --muted: 240 3.7% 15.9%;
+        --muted-foreground: 240 5% 64.9%;
+        --accent: 240 3.7% 15.9%;
+        --accent-foreground: 0 0% 98%;
+        --destructive: 0 62.8% 30.6%;
+        --destructive-foreground: 0 0% 98%;
+        --border: 240 3.7% 15.9%;
+        --input: 240 3.7% 15.9%;
+        --ring: 262 83% 58%;
+      }
+      * { @apply border-border; }
+      body { @apply bg-background text-foreground; }
+    }
+
+    @layer utilities {
+      .animate-slideIn {
+        animation: slideIn 0.3s ease-out;
+      }
+      @keyframes slideIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+    }
+
+    /* Markdown content styling */
+    .message-content h1, .message-content h2, .message-content h3 {
+      @apply font-semibold mt-4 mb-2;
+    }
+    .message-content p { @apply my-2; }
+    .message-content code { @apply bg-muted px-1.5 py-0.5 rounded font-mono text-sm; }
+    .message-content pre { @apply bg-muted p-4 rounded-lg overflow-x-auto my-3; }
+    .message-content pre code { @apply bg-transparent p-0; }
+    .message-content ul, .message-content ol { @apply my-2 pl-6; }
+    .message-content ul { @apply list-disc; }
+    .message-content ol { @apply list-decimal; }
+    .message-content blockquote { @apply border-l-4 border-primary/50 pl-4 my-2 italic; }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/marked@11.1.1/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script type="module" src="main.js" defer></script>
 </head>
-
 <body>
-  <main class="chat-container">
-    <div class="chat-header">
-      <h1>💬 Ollama Chat</h1>
-      <div class="model-info">Model: deepseek-r1:1.5b</div>
-    </div>
-
-    <div class="chat-messages" id="chat-messages">
-      <div class="message assistant">
-        <div class="message-content">
-          Hi! I'm DeepSeek-R1. How can I help you today?
-        </div>
-      </div>
-    </div>
-
-    <form class="chat-input-form" id="chat-form">
-      <input id="message-input" placeholder="Type your message..." autocomplete="off" />
-      <button type="submit" id="send-btn">Send</button>
-    </form>
-  </main>
+  <div id="app"></div>
 </body>
 </html>
