@@ -6,6 +6,7 @@ import { Button } from "./ui/button";
 import { Textarea } from "./ui/textarea";
 import { Loader2, Brain, Globe, Paperclip, ArrowUp } from "lucide-react";
 import { chatWithOllama } from "../lib/ollamaChat";
+import { useAppStore as updateAppStore } from "../store/appStore";
 
 const ChatApp: React.FC = () => {
   const {
@@ -78,6 +79,33 @@ const ChatApp: React.FC = () => {
           content: accumulatedContent,
         });
         setStreamingContent("");
+
+        // Auto-generate title if this is the first message
+        // Auto-generate title after first few messages (using last 3 messages for context)
+        const totalMessages = updatedMessages.length + 1; // +1 for the new assistant response
+        if (totalMessages <= 4 && totalMessages > 1) {
+          const lastMessages = [
+            ...updatedMessages,
+            { role: "assistant", content: accumulatedContent },
+          ].slice(-3);
+          const msgContext = lastMessages
+            .map((m) => `${m.role}: ${m.content}`)
+            .join("\n");
+
+          const titlePrompt = `Generate a short, concise title (max 3-5 words) for this chat based on the following context:\n\n${msgContext}\n\nReturn ONLY the title text, no quotes or explanations.`;
+
+          // Generate title in background
+          chatWithOllama(model, [{ role: "user", content: titlePrompt }])
+            .then((title) => {
+              const cleanTitle = title.trim().replace(/^["']|["']$/g, "");
+              if (cleanTitle) {
+                updateAppStore
+                  .getState()
+                  .updateChatTitle(activeChatId!, cleanTitle);
+              }
+            })
+            .catch((err) => console.error("Failed to generate title:", err));
+        }
       } else {
         // Other providers (TODO: implement)
         addMessage(activeChatId!, {
