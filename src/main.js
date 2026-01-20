@@ -19,14 +19,16 @@ async function sendMessage() {
   sendBtn.disabled = true;
 
   // Create placeholder for streaming response
-  const assistantMessageDiv = createMessageElement("assistant");
-  const contentDiv = assistantMessageDiv.querySelector(".message-content");
+  const contentDiv = createMessageElement("assistant");
   contentDiv.innerHTML =
-    '<span class="flex gap-1 items-center font-medium opacity-50 animate-pulse">Thinking...</span>';
+    '<span class="flex gap-1 items-center font-medium opacity-50 animate-pulse text-sm">Thinking...</span>';
   let fullResponse = "";
 
   try {
-    const response = await fetch("http://127.0.0.1:11434/api/generate", {
+    // Keep only the last 20 messages for the request
+    const historyToSend = conversationHistory.slice(-20);
+
+    const response = await fetch("http://127.0.0.1:11434/api/chat", {
       method: "POST",
       mode: "cors",
       headers: {
@@ -34,9 +36,14 @@ async function sendMessage() {
       },
       body: JSON.stringify({
         model: "deepseek-r1:1.5b",
-        prompt: message,
-        system:
-          "You are Muradian AI, a helpful and knowledgeable AI assistant. You provide clear, accurate, and detailed responses to help users with their questions.",
+        messages: [
+          {
+            role: "system",
+            content:
+              "You are Muradian AI. Give very simple, direct and accurate answers. No long intro or outro. Just the facts. If it is a list, use bullet points. Keep it clear.",
+          },
+          ...historyToSend,
+        ],
         stream: true,
       }),
     });
@@ -66,12 +73,14 @@ async function sendMessage() {
         if (!line.trim()) continue;
         try {
           const data = JSON.parse(line);
-          if (data.response !== undefined) {
-            if (isFirstChunk && data.response !== "") {
+          const chunkContent = data.message?.content;
+
+          if (chunkContent !== undefined) {
+            if (isFirstChunk && chunkContent !== "") {
               contentDiv.innerHTML = "";
               isFirstChunk = false;
             }
-            fullResponse += data.response;
+            fullResponse += chunkContent;
 
             // Only update DOM if there's actually something to show or we need to clear "Thinking..."
             if (!isFirstChunk) {
@@ -96,9 +105,12 @@ async function sendMessage() {
     if (buffer.trim()) {
       try {
         const data = JSON.parse(buffer);
-        if (data.response) {
-          fullResponse += data.response;
-          contentDiv.innerHTML = marked.parse(fullResponse);
+        const chunkContent = data.message?.content;
+        if (chunkContent) {
+          fullResponse += chunkContent;
+          contentDiv.innerHTML = window.marked
+            ? marked.parse(fullResponse)
+            : fullResponse;
           renderMath(contentDiv);
         }
       } catch (e) {
@@ -111,8 +123,10 @@ async function sendMessage() {
     updateContextCounter();
   } catch (error) {
     console.error("Error:", error);
-    contentDiv.remove();
-    assistantMessageDiv.remove();
+    // Remove the empty thinking message if it exists
+    if (contentDiv && contentDiv.closest(".animate-slideIn")) {
+      contentDiv.closest(".animate-slideIn").remove();
+    }
     addMessage(
       "Error: Could not connect to Ollama. Make sure Ollama is running.",
       "error",
@@ -128,27 +142,34 @@ function createMessageElement(type) {
   const isError = type === "error";
 
   const messageDiv = document.createElement("div");
-  messageDiv.className = `flex ${isUser ? "justify-end" : isError ? "justify-center" : "justify-start"} animate-slideIn`;
+  messageDiv.className = `flex flex-col ${isUser ? "items-end" : isError ? "items-center" : "items-start"} animate-slideIn gap-1`;
+
+  const label = document.createElement("span");
+  label.className =
+    "text-[10px] font-bold uppercase tracking-wider text-muted-foreground px-1";
+  label.textContent = isUser ? "You" : isError ? "System" : "Muradian AI";
 
   const messageClass = isUser
-    ? "ml-auto bg-primary text-primary-foreground"
+    ? "bg-primary text-primary-foreground"
     : isError
-      ? "mx-auto bg-destructive/10 text-destructive border border-destructive/20"
-      : "mr-auto bg-card border border-border";
+      ? "bg-destructive/10 text-destructive border border-destructive/20"
+      : "bg-card border border-border";
 
   messageDiv.innerHTML = `
-    <div class="${messageClass} rounded-lg px-4 py-3 max-w-[80%] shadow-sm message-content" data-type="${type}"></div>
+    <div class="flex flex-col ${isUser ? "items-end" : "items-start"} gap-1 w-full max-w-[85%]">
+      ${!isError ? label.outerHTML : ""}
+      <div class="${messageClass} rounded-2xl px-4 py-2.5 shadow-sm message-content w-full" data-type="${type}"></div>
+    </div>
   `;
 
   chatMessages.appendChild(messageDiv);
   chatMessages.scrollTop = chatMessages.scrollHeight;
 
-  return messageDiv;
+  return messageDiv.querySelector(".message-content");
 }
 
 function addMessage(content, type) {
-  const messageDiv = createMessageElement(type);
-  const contentDiv = messageDiv.querySelector(".message-content");
+  const contentDiv = createMessageElement(type);
 
   if (type === "assistant") {
     contentDiv.innerHTML = window.marked ? marked.parse(content) : content;
@@ -214,14 +235,7 @@ function initApp() {
   contextValue = document.querySelector("#context-value");
 
   // Add initial welcome message
-  const welcomeDiv = document.createElement("div");
-  welcomeDiv.className = "flex justify-start animate-slideIn";
-  welcomeDiv.innerHTML = `
-    <div class="mr-auto bg-card border border-border rounded-lg px-4 py-3 max-w-[80%] shadow-sm">
-      Hi! I'm Muradian AI. How can I help you today?
-    </div>
-  `;
-  chatMessages.appendChild(welcomeDiv);
+  addMessage("Hi! I'm Muradian AI. How can I help you today?", "assistant");
 
   // Event listeners
   document.querySelector("#chat-form").addEventListener("submit", (e) => {
