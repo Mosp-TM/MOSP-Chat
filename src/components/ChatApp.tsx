@@ -160,7 +160,7 @@ const ChatApp: React.FC = () => {
 
             {/* Input Area */}
             <div className="p-4 bg-background">
-              <div className="mx-auto max-w-3xl">
+              <div className="w-full">
                 <form
                   onSubmit={handleSend}
                   className="flex flex-col gap-2 bg-muted/50 rounded-2xl p-4 border border-border/50 focus-within:ring-1 focus-within:ring-ring transition-all">
@@ -217,10 +217,10 @@ const ChatApp: React.FC = () => {
                   </div>
                 </form>
 
-                <div className="mt-2 text-center text-xs text-muted-foreground">
+                {/* <div className="mt-2 text-center text-xs text-muted-foreground">
                   Context:{" "}
                   <span className="font-mono">{messages.length} messages</span>
-                </div>
+                </div> */}
               </div>
             </div>
           </div>
