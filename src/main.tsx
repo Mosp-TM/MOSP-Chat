@@ -1,10 +1,13 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import ChatApp from "./components/ChatApp";
+import { ThemeProvider } from "./components/ThemeProvider";
 import "./styles.css";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
-    <ChatApp />
+    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+      <ChatApp />
+    </ThemeProvider>
   </React.StrictMode>,
 );

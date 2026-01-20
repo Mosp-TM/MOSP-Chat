@@ -5,9 +5,12 @@ import {
   Trash2,
   ChevronsLeft,
   ChevronsRight,
+  Sun,
+  Moon,
 } from "lucide-react";
 import SettingsDialog from "./SettingsDialog";
 import { useAppStore, type Chat } from "../store/appStore";
+import { useTheme } from "next-themes";
 
 const Sidebar: React.FC = () => {
   const {
@@ -19,6 +22,7 @@ const Sidebar: React.FC = () => {
     isSidebarOpen,
     toggleSidebar,
   } = useAppStore();
+  const { theme, setTheme } = useTheme();
 
   const handleNewChat = () => {
     const newChat: Chat = {
@@ -89,8 +93,18 @@ const Sidebar: React.FC = () => {
             <SettingsDialog />
           </div>
           <button
+            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+            className="p-2 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-md text-slate-500 transition-colors"
+            title="Toggle Theme">
+            {theme === "dark" ? (
+              <Sun className="h-5 w-5" />
+            ) : (
+              <Moon className="h-5 w-5" />
+            )}
+          </button>
+          <button
             onClick={toggleSidebar}
-            className="p-2 hover:bg-slate-200 rounded-md text-slate-500 transition-colors"
+            className="p-2 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-md text-slate-500 transition-colors"
             title={isSidebarOpen ? "Collapse Sidebar" : "Expand Sidebar"}>
             {isSidebarOpen ? (
               <ChevronsLeft className="h-5 w-5" />
