@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useAppStore, type Message } from "../store/appStore";
 import ProviderDialog from "./ProviderDialog";
 import Sidebar from "./Sidebar";
@@ -8,22 +8,59 @@ import { Loader2, Send } from "lucide-react";
 import { chatWithOllama } from "../lib/ollamaChat";
 
 const ChatApp: React.FC = () => {
-  const { hasCompletedSetup, provider, model } = useAppStore();
+  const {
+    hasCompletedSetup,
+    provider,
+    model,
+    chats,
+    currentChatId,
+    addMessage,
+    addChat,
+  } = useAppStore();
   const [inputValue, setInputValue] = useState("");
-  const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(false);
   const [streamingContent, setStreamingContent] = useState("");
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Get current chat messages
+  const currentChat = chats.find((c) => c.id === currentChatId);
+  const messages = currentChat?.messages || [];
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, streamingContent]);
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputValue.trim() || loading) return;
 
+    // Ensure we have a valid chat session
+    let activeChatId = currentChatId;
+    if (!activeChatId) {
+      const newChat = {
+        id: Date.now().toString(),
+        title: inputValue.slice(0, 30) + (inputValue.length > 30 ? "..." : ""),
+        messages: [],
+      };
+      addChat(newChat);
+      activeChatId = newChat.id;
+    }
+
     const userMsg: Message = { role: "user", content: inputValue };
-    const updatedMessages = [...messages, userMsg];
-    setMessages(updatedMessages);
+    addMessage(activeChatId!, userMsg);
     setInputValue("");
     setLoading(true);
     setStreamingContent("");
+
+    // Create a temporary updated message list for context
+    const updatedMessages = [
+      ...(chats.find((c) => c.id === activeChatId)?.messages || []),
+      userMsg,
+    ];
 
     try {
       if (provider === "ollama") {
@@ -36,30 +73,24 @@ const ChatApp: React.FC = () => {
           setStreamingContent(accumulatedContent);
         });
 
-        setMessages((prev) => [
-          ...prev,
-          { role: "assistant", content: accumulatedContent },
-        ]);
+        addMessage(activeChatId!, {
+          role: "assistant",
+          content: accumulatedContent,
+        });
         setStreamingContent("");
       } else {
         // Other providers (TODO: implement)
-        setMessages((prev) => [
-          ...prev,
-          {
-            role: "assistant",
-            content: `${provider} integration coming soon!`,
-          },
-        ]);
+        addMessage(activeChatId!, {
+          role: "assistant",
+          content: `${model} integration via ${provider} coming soon!`,
+        });
       }
     } catch (error) {
       console.error("Chat error:", error);
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          content: `Error: ${error instanceof Error ? error.message : "Failed to get response"}`,
-        },
-      ]);
+      addMessage(activeChatId!, {
+        role: "assistant",
+        content: `Error: ${error instanceof Error ? error.message : "Failed to get response"}`,
+      });
     } finally {
       setLoading(false);
     }
@@ -124,6 +155,7 @@ const ChatApp: React.FC = () => {
                   </div>
                 </div>
               )}
+              <div ref={messagesEndRef} />
             </div>
 
             {/* Input Area */}
@@ -132,7 +164,7 @@ const ChatApp: React.FC = () => {
                 <span>
                   Context:{" "}
                   <span className="font-mono text-primary font-bold">
-                    0 tokens
+                    {messages.length} messages
                   </span>
                 </span>
               </div>

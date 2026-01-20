@@ -16,6 +16,8 @@ interface AppState {
   setApiKey: (provider: string, key: string) => void;
   addChat: (chat: Chat) => void;
   setCurrentChatId: (id: string | null) => void;
+  addMessage: (chatId: string, message: Message) => void;
+  updateChatTitle: (chatId: string, title: string) => void;
   getApiKey: (provider: string) => string;
 }
 
@@ -60,6 +62,22 @@ export const useAppStore = create<AppState>()(
         })),
 
       setCurrentChatId: (id) => set({ currentChatId: id }),
+
+      addMessage: (chatId, message) =>
+        set((state) => ({
+          chats: state.chats.map((chat) =>
+            chat.id === chatId
+              ? { ...chat, messages: [...chat.messages, message] }
+              : chat,
+          ),
+        })),
+
+      updateChatTitle: (chatId, title) =>
+        set((state) => ({
+          chats: state.chats.map((chat) =>
+            chat.id === chatId ? { ...chat, title } : chat,
+          ),
+        })),
 
       // Helpers
       getApiKey: (provider) => get().apiKeys[provider] || "",
