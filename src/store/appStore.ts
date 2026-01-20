@@ -19,6 +19,8 @@ interface AppState {
   addMessage: (chatId: string, message: Message) => void;
   updateChatTitle: (chatId: string, title: string) => void;
   deleteChat: (chatId: string) => void;
+  isSidebarOpen: boolean;
+  toggleSidebar: () => void;
   getApiKey: (provider: string) => string;
 }
 
@@ -43,6 +45,7 @@ export const useAppStore = create<AppState>()(
       apiKeys: {},
       chats: [],
       currentChatId: null,
+      isSidebarOpen: true,
 
       // Actions
       completeSetup: () => set({ hasCompletedSetup: true }),
@@ -89,6 +92,9 @@ export const useAppStore = create<AppState>()(
             currentChatId: isCurrentChat ? null : state.currentChatId,
           };
         }),
+
+      toggleSidebar: () =>
+        set((state) => ({ isSidebarOpen: !state.isSidebarOpen })),
 
       // Helpers
       getApiKey: (provider) => get().apiKeys[provider] || "",
