@@ -12,8 +12,8 @@ export async function chatWithOpenRouter(
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${apiKey}`,
-          "HTTP-Referer": window.location.origin, // Optional, for including your app on openrouter.ai rankings.
-          "X-Title": "MOSP Chat", // Optional. Shows in rankings on openrouter.ai.
+          "HTTP-Referer": "https://mosp-chat.app", // Use a valid URL for OpenRouter
+          "X-Title": "MOSP Chat",
         },
         body: JSON.stringify({
           model,

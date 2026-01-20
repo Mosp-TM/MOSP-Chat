@@ -7,8 +7,9 @@ fn greet(name: &str) -> String {
 
 #[tauri::command]
 fn check_ollama_installed() -> bool {
+    // Simply try to run 'ollama list' - this works if Ollama is installed and running
     Command::new("ollama")
-        .arg("--version")
+        .arg("list")
         .output()
         .map(|output| output.status.success())
         .unwrap_or(false)

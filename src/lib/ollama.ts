@@ -2,11 +2,20 @@ import { invoke } from "@tauri-apps/api/core";
 
 export async function checkOllamaInstalled(): Promise<boolean> {
   try {
+    // First try the Tauri command
     const isInstalled = await invoke<boolean>("check_ollama_installed");
-    return isInstalled;
+    if (isInstalled) return true;
+
+    // Fallback: try HTTP check
+    return await checkOllamaRunning();
   } catch (error) {
     console.error("Failed to check Ollama installation:", error);
-    return false;
+    // Final fallback: try HTTP check
+    try {
+      return await checkOllamaRunning();
+    } catch {
+      return false;
+    }
   }
 }
 
@@ -43,7 +52,7 @@ export async function installOllama(): Promise<boolean> {
 export async function checkOllamaRunning(): Promise<boolean> {
   try {
     const controller = new AbortController();
-    const id = setTimeout(() => controller.abort(), 1000);
+    const id = setTimeout(() => controller.abort(), 3000);
     const response = await fetch("http://localhost:11434", {
       signal: controller.signal,
     });
