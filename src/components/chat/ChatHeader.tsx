@@ -1,12 +1,16 @@
 import React from "react";
-import { useAppStore } from "../../store/appStore";
 
-const ChatHeader: React.FC = () => {
-  const { provider, model, chats, currentChatId } = useAppStore();
+interface ChatHeaderProps {
+  title?: string;
+  provider: string;
+  model: string;
+}
 
-  const currentChat = chats.find((c) => c.id === currentChatId);
-  const title = currentChat?.title || "Muradian AI";
-
+const ChatHeader: React.FC<ChatHeaderProps> = ({
+  title = "Muradian AI",
+  provider,
+  model,
+}) => {
   return (
     <header className="border-b bg-background p-4 flex items-center gap-3">
       <span className="text-2xl">🤖</span>

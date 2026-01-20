@@ -1,190 +1,157 @@
-import React, { useState, useEffect, useRef } from "react";
-import { useAppStore, type Message } from "../store/appStore";
+import React, { useState } from "react";
+import { useAppStore } from "../store/appStore";
 import ProviderDialog from "./ProviderDialog";
 import Sidebar from "./Sidebar";
-import { chatWithOllama } from "../lib/ollamaChat";
+import ChatPane from "./chat/ChatPane";
+import { DndContext, DragEndEvent, useDroppable } from "@dnd-kit/core";
 import {
-  chatWithOpenRouter,
-  fetchOpenRouterModels,
-} from "../lib/openRouterChat";
-import { useAppStore as updateAppStore } from "../store/appStore";
-import ChatHeader from "./chat/ChatHeader";
-import MessageList from "./chat/MessageList";
-import ChatInput from "./chat/ChatInput";
+  ResizablePanelGroup,
+  ResizablePanel,
+  ResizableHandle,
+} from "./ui/resizable";
+import { Plus } from "lucide-react";
 
 const ChatApp: React.FC = () => {
   const {
     hasCompletedSetup,
-    provider,
-    model,
-    chats,
-    currentChatId,
-    addChat,
-    addMessage,
-    setModel,
+    layout,
+    primaryChatId,
+    secondaryChatId,
+    activePane,
+    enableSplitView,
+    closeSplitView,
+    setPaneChat,
+    setActivePane,
   } = useAppStore();
-  const [inputValue, setInputValue] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [streamingContent, setStreamingContent] = useState("");
-  const [openRouterModels, setOpenRouterModels] = useState<string[]>([]);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (provider === "openrouter") {
-      fetchOpenRouterModels().then(setOpenRouterModels);
-    }
-  }, [provider]);
+  const [showDropZones, setShowDropZones] = useState(false);
 
-  // Get current chat messages
-  const currentChat = chats.find((c) => c.id === currentChatId);
-  const messages = currentChat?.messages || [];
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  const handleDragStart = () => {
+    setShowDropZones(true);
   };
 
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages, streamingContent]);
+  const handleDragEnd = (event: DragEndEvent) => {
+    setShowDropZones(false);
+    const { active, over } = event;
 
-  const handleSend = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!inputValue.trim() || loading) return;
+    if (!over) return;
 
-    // Ensure we have a valid chat session
-    let activeChatId = currentChatId;
-    if (!activeChatId) {
-      const newChat = {
-        id: Date.now().toString(),
-        title: inputValue.slice(0, 30) + (inputValue.length > 30 ? "..." : ""),
-        messages: [],
-      };
-      addChat(newChat);
-      activeChatId = newChat.id;
+    const chatId = active.data.current?.chatId;
+    if (!chatId) return;
+
+    // If dropped on left zone, set as primary
+    if (over.id === "drop-zone-left") {
+      setPaneChat("primary", chatId);
     }
-
-    const userMsg: Message = { role: "user", content: inputValue };
-    addMessage(activeChatId!, userMsg);
-    setInputValue("");
-    setLoading(true);
-    setStreamingContent("");
-
-    // Create a temporary updated message list for context
-    const updatedMessages = [
-      ...(chats.find((c) => c.id === activeChatId)?.messages || []),
-      userMsg,
-    ];
-
-    try {
-      if (provider === "ollama") {
-        // Send last 20 messages as context
-        const contextMessages = updatedMessages.slice(-20);
-        let accumulatedContent = "";
-
-        await chatWithOllama(model, contextMessages, (chunk) => {
-          accumulatedContent += chunk;
-          setStreamingContent(accumulatedContent);
-        });
-
-        addMessage(activeChatId!, {
-          role: "assistant",
-          content: accumulatedContent,
-        });
-        setStreamingContent("");
-
-        // Auto-generate title after first few messages (using last 3 messages for context)
-        const totalMessages = updatedMessages.length + 1; // +1 for the new assistant response
-        if (totalMessages <= 4 && totalMessages > 1) {
-          const lastMessages = [
-            ...updatedMessages,
-            { role: "assistant", content: accumulatedContent },
-          ].slice(-3);
-          const msgContext = lastMessages
-            .map((m) => `${m.role}: ${m.content}`)
-            .join("\n");
-
-          const titlePrompt = `Generate a short, concise title (max 3-5 words) for this chat based on the following context:\n\n${msgContext}\n\nReturn ONLY the title text, no quotes or explanations.`;
-
-          // Generate title in background
-          chatWithOllama(model, [{ role: "user", content: titlePrompt }])
-            .then((title) => {
-              const cleanTitle = title.trim().replace(/^["']|["']$/g, "");
-              if (cleanTitle) {
-                updateAppStore
-                  .getState()
-                  .updateChatTitle(activeChatId!, cleanTitle);
-              }
-            })
-            .catch((err) => console.error("Failed to generate title:", err));
-        }
-      } else if (provider === "openrouter") {
-        const apiKey = useAppStore.getState().apiKeys[provider];
-        if (!apiKey) throw new Error("API Key not found");
-
-        const contextMessages = updatedMessages.slice(-20);
-        let accumulatedContent = "";
-
-        await chatWithOpenRouter(model, apiKey, contextMessages, (chunk) => {
-          accumulatedContent += chunk;
-          setStreamingContent(accumulatedContent);
-        });
-
-        addMessage(activeChatId!, {
-          role: "assistant",
-          content: accumulatedContent,
-        });
-        setStreamingContent("");
-      } else {
-        // Other providers (TODO: implement)
-        addMessage(activeChatId!, {
-          role: "assistant",
-          content: `${model} integration via ${provider} coming soon!`,
-        });
+    // If dropped on right zone, enable split view with this chat as secondary
+    else if (over.id === "drop-zone-right") {
+      enableSplitView(chatId);
+    }
+    // If dropped on sidebar, close split view if it was the secondary pane
+    else if (over.id === "sidebar") {
+      if (chatId === secondaryChatId) {
+        closeSplitView();
       }
-    } catch (error) {
-      console.error("Chat error:", error);
-      addMessage(activeChatId!, {
-        role: "assistant",
-        content: `Error: ${error instanceof Error ? error.message : "Failed to get response"}`,
-      });
-    } finally {
-      setLoading(false);
     }
   };
 
   return (
-    <div className="flex h-screen bg-background overflow-hidden">
-      {!hasCompletedSetup ? (
-        <ProviderDialog open={true} />
-      ) : (
-        <>
-          <Sidebar />
+    <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+      <div className="flex h-screen bg-background overflow-hidden">
+        {!hasCompletedSetup ? (
+          <ProviderDialog open={true} />
+        ) : (
+          <>
+            <Sidebar />
 
-          <div className="flex-1 flex flex-col h-full relative">
-            <ChatHeader />
+            {layout === "single" ? (
+              <div className="flex-1 flex flex-col h-full relative">
+                {showDropZones && (
+                  <>
+                    <DropZone id="drop-zone-left" position="left" />
+                    <DropZone id="drop-zone-right" position="right" />
+                  </>
+                )}
+                <ChatPane
+                  chatId={primaryChatId}
+                  pane="primary"
+                  isActive={true}
+                  onFocus={() => setActivePane("primary")}
+                />
+              </div>
+            ) : (
+              <div className="flex-1 relative h-full overflow-hidden">
+                {showDropZones && <DropZone id="sidebar" position="sidebar" />}
+                <ResizablePanelGroup
+                  direction="horizontal"
+                  className="h-full w-full">
+                  <ResizablePanel defaultSize={50} minSize={30}>
+                    <ChatPane
+                      key={primaryChatId || "primary-empty"}
+                      chatId={primaryChatId}
+                      pane="primary"
+                      isActive={activePane === "primary"}
+                      onFocus={() => setActivePane("primary")}
+                    />
+                  </ResizablePanel>
+                  <ResizableHandle withHandle />
+                  <ResizablePanel defaultSize={50} minSize={30}>
+                    <ChatPane
+                      key={secondaryChatId || "secondary-empty"}
+                      chatId={secondaryChatId}
+                      pane="secondary"
+                      isActive={activePane === "secondary"}
+                      onFocus={() => setActivePane("secondary")}
+                    />
+                  </ResizablePanel>
+                </ResizablePanelGroup>
+              </div>
+            )}
 
-            <MessageList
-              messages={messages}
-              loading={loading}
-              streamingContent={streamingContent}
-              messagesEndRef={messagesEndRef}
-            />
+            <ProviderDialog open={!hasCompletedSetup} />
+          </>
+        )}
+      </div>
+    </DndContext>
+  );
+};
 
-            <ChatInput
-              inputValue={inputValue}
-              setInputValue={setInputValue}
-              handleSend={handleSend}
-              loading={loading}
-              provider={provider}
-              model={model}
-              models={openRouterModels}
-              setModel={setModel}
-            />
-          </div>
+interface DropZoneProps {
+  id: string;
+  position: "left" | "right" | "sidebar";
+}
 
-          <ProviderDialog open={!hasCompletedSetup} />
-        </>
-      )}
+const DropZone: React.FC<DropZoneProps> = ({ id, position }) => {
+  const { isOver, setNodeRef } = useDroppable({
+    id,
+  });
+
+  const positionStyles = {
+    left: "left-0 w-1/2",
+    right: "right-0 w-1/2",
+    sidebar: "left-0 w-64",
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      className={`absolute top-0 h-full ${positionStyles[position]} z-50 pointer-events-auto transition-all ${
+        isOver
+          ? "bg-primary/20 border-2 border-primary border-dashed"
+          : "bg-primary/5 border-2 border-primary/30 border-dashed"
+      }`}>
+      <div className="flex items-center justify-center h-full">
+        <div className="flex flex-col items-center gap-2 text-muted-foreground">
+          <Plus className="h-8 w-8" />
+          <span className="text-sm font-medium">
+            {position === "sidebar"
+              ? "Drop here to close split"
+              : position === "left"
+                ? "Drop here for left pane"
+                : "Drop here for right pane"}
+          </span>
+        </div>
+      </div>
     </div>
   );
 };

@@ -11,6 +11,7 @@ import {
 import SettingsDialog from "./SettingsDialog";
 import { useAppStore, type Chat } from "../store/appStore";
 import { useTheme } from "next-themes";
+import { useDraggable } from "@dnd-kit/core";
 
 const Sidebar: React.FC = () => {
   const {
@@ -52,36 +53,14 @@ const Sidebar: React.FC = () => {
 
       <div className="flex-1 overflow-auto p-2 space-y-1">
         {chats.map((chat) => (
-          <div
+          <DraggableChatItem
             key={chat.id}
-            className={`group w-full flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors hover:bg-muted ${
-              currentChatId === chat.id ? "bg-muted font-medium" : ""
-            } ${!isSidebarOpen && "justify-center px-2"}`}>
-            <button
-              onClick={() => setCurrentChatId(chat.id)}
-              className={`flex-1 flex items-center gap-2 overflow-hidden text-left ${
-                !isSidebarOpen && "justify-center"
-              }`}
-              title={chat.title || "Untitled Chat"}>
-              <MessageSquare className="h-4 w-4 shrink-0" />
-              {isSidebarOpen && (
-                <span className="truncate">
-                  {chat.title || "Untitled Chat"}
-                </span>
-              )}
-            </button>
-            {isSidebarOpen && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  deleteChat(chat.id);
-                }}
-                className="opacity-0 group-hover:opacity-100 p-1 hover:text-destructive transition-opacity"
-                title="Delete Chat">
-                <Trash2 className="h-4 w-4" />
-              </button>
-            )}
-          </div>
+            chat={chat}
+            isActive={currentChatId === chat.id}
+            isSidebarOpen={isSidebarOpen}
+            onSelect={() => setCurrentChatId(chat.id)}
+            onDelete={() => deleteChat(chat.id)}
+          />
         ))}
       </div>
 
@@ -114,6 +93,65 @@ const Sidebar: React.FC = () => {
           </button>
         </div>
       </div>
+    </div>
+  );
+};
+
+interface DraggableChatItemProps {
+  chat: Chat;
+  isActive: boolean;
+  isSidebarOpen: boolean;
+  onSelect: () => void;
+  onDelete: () => void;
+}
+
+const DraggableChatItem: React.FC<DraggableChatItemProps> = ({
+  chat,
+  isActive,
+  isSidebarOpen,
+  onSelect,
+  onDelete,
+}) => {
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+    id: chat.id,
+    data: {
+      type: "chat",
+      chatId: chat.id,
+    },
+  });
+
+  return (
+    <div
+      ref={setNodeRef}
+      {...listeners}
+      {...attributes}
+      className={`group w-full flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors hover:bg-muted cursor-grab active:cursor-grabbing ${
+        isActive ? "bg-muted font-medium" : ""
+      } ${!isSidebarOpen && "justify-center px-2"} ${
+        isDragging ? "opacity-50" : ""
+      }`}>
+      <button
+        onClick={onSelect}
+        className={`flex-1 flex items-center gap-2 overflow-hidden text-left ${
+          !isSidebarOpen && "justify-center"
+        }`}
+        title={chat.title || "Untitled Chat"}>
+        <MessageSquare className="h-4 w-4 shrink-0" />
+        {isSidebarOpen && (
+          <span className="truncate">{chat.title || "Untitled Chat"}</span>
+        )}
+      </button>
+      {isSidebarOpen && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete();
+          }}
+          className="opacity-0 group-hover:opacity-100 p-1 hover:text-destructive transition-opacity"
+          title="Delete Chat">
+          <Trash2 className="h-4 w-4" />
+        </button>
+      )}
     </div>
   );
 };
