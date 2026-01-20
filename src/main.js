@@ -21,11 +21,14 @@ async function sendMessage() {
   // Create placeholder for streaming response
   const assistantMessageDiv = createMessageElement("assistant");
   const contentDiv = assistantMessageDiv.querySelector(".message-content");
+  contentDiv.innerHTML =
+    '<span class="flex gap-1 items-center font-medium opacity-50 animate-pulse">Thinking...</span>';
   let fullResponse = "";
 
   try {
-    const response = await fetch("http://localhost:11434/api/generate", {
+    const response = await fetch("http://127.0.0.1:11434/api/generate", {
       method: "POST",
+      mode: "cors",
       headers: {
         "Content-Type": "application/json",
       },
@@ -39,32 +42,67 @@ async function sendMessage() {
     });
 
     if (!response.ok) {
-      throw new Error("Failed to get response from Ollama");
+      throw new Error(
+        `Failed to get response from Ollama (${response.status})`,
+      );
     }
 
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
+    let buffer = "";
+    let isFirstChunk = true;
 
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
 
-      const chunk = decoder.decode(value);
-      const lines = chunk.split("\n").filter((line) => line.trim());
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n");
+
+      // Keep the last partial line in the buffer
+      buffer = lines.pop() || "";
 
       for (const line of lines) {
+        if (!line.trim()) continue;
         try {
           const data = JSON.parse(line);
-          if (data.response) {
+          if (data.response !== undefined) {
+            if (isFirstChunk && data.response !== "") {
+              contentDiv.innerHTML = "";
+              isFirstChunk = false;
+            }
             fullResponse += data.response;
-            // Parse and render markdown in real-time
-            contentDiv.innerHTML = marked.parse(fullResponse);
-            renderMath(contentDiv);
-            chatMessages.scrollTop = chatMessages.scrollHeight;
+
+            // Only update DOM if there's actually something to show or we need to clear "Thinking..."
+            if (!isFirstChunk) {
+              contentDiv.innerHTML = window.marked
+                ? marked.parse(fullResponse)
+                : fullResponse;
+              renderMath(contentDiv);
+              chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
+          }
+
+          if (data.done) {
+            // Handle completion if needed
           }
         } catch (e) {
-          console.error("Error parsing chunk:", e);
+          console.error("Error parsing chunk:", e, line);
         }
+      }
+    }
+
+    // Process any remaining data in buffer
+    if (buffer.trim()) {
+      try {
+        const data = JSON.parse(buffer);
+        if (data.response) {
+          fullResponse += data.response;
+          contentDiv.innerHTML = marked.parse(fullResponse);
+          renderMath(contentDiv);
+        }
+      } catch (e) {
+        // Final buffer might not be valid JSON if it's just whitespace
       }
     }
 
@@ -113,7 +151,7 @@ function addMessage(content, type) {
   const contentDiv = messageDiv.querySelector(".message-content");
 
   if (type === "assistant") {
-    contentDiv.innerHTML = marked.parse(content);
+    contentDiv.innerHTML = window.marked ? marked.parse(content) : content;
     renderMath(contentDiv);
   } else {
     contentDiv.textContent = content;
@@ -135,6 +173,7 @@ function updateContextCounter() {
 }
 
 function renderMath(element) {
+  if (!window.katex) return;
   // Render inline math: \( ... \)
   element.innerHTML = element.innerHTML.replace(
     /\\\(([^\)]+)\\\)/g,
