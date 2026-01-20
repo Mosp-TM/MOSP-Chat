@@ -1,5 +1,26 @@
 use std::process::Command;
 
+// Try to find ollama binary in common locations
+fn get_ollama_path() -> Option<String> {
+    let paths = [
+        "ollama",
+        "/usr/local/bin/ollama",
+        "/opt/homebrew/bin/ollama",
+    ];
+    
+    for path in paths {
+        if Command::new(path)
+            .arg("--version")
+            .output()
+            .map(|o| o.status.success())
+            .unwrap_or(false)
+        {
+            return Some(path.to_string());
+        }
+    }
+    None
+}
+
 #[tauri::command]
 fn greet(name: &str) -> String {
     format!("Hello, {}! You've been greeted from Rust!", name)
@@ -7,30 +28,34 @@ fn greet(name: &str) -> String {
 
 #[tauri::command]
 fn check_ollama_installed() -> bool {
-    // Simply try to run 'ollama list' - this works if Ollama is installed and running
-    Command::new("ollama")
-        .arg("list")
-        .output()
-        .map(|output| output.status.success())
-        .unwrap_or(false)
+    get_ollama_path().is_some()
 }
 
 #[tauri::command]
 fn run_ollama_command(args: Vec<String>) -> String {
-    let output = Command::new("ollama")
-        .args(args)
-        .output();
-        
-    match output {
-        Ok(o) => String::from_utf8_lossy(&o.stdout).to_string(),
-        Err(e) => format!("Error: {}", e),
+    if let Some(ollama_path) = get_ollama_path() {
+        let output = Command::new(&ollama_path)
+            .args(args)
+            .output();
+            
+        match output {
+            Ok(o) => {
+                if o.status.success() {
+                    String::from_utf8_lossy(&o.stdout).to_string()
+                } else {
+                    let stderr = String::from_utf8_lossy(&o.stderr);
+                    format!("Error: {}", stderr)
+                }
+            },
+            Err(e) => format!("Error: {}", e),
+        }
+    } else {
+        "Error: Ollama not found".to_string()
     }
 }
 
 #[tauri::command]
 fn install_ollama() -> bool {
-    // For now, we'll just open the download page as running 
-    // interactive installers in background is complex
     let _ = opener::open("https://ollama.com/download");
     true
 }
@@ -48,3 +73,4 @@ pub fn run() {
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
+
