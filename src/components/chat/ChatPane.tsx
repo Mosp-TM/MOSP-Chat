@@ -278,6 +278,7 @@ const ChatPane: React.FC<ChatPaneProps> = ({
           streamingContent={streamingContent}
           messagesEndRef={messagesEndRef}
           onRegenerateFromPoint={handleRegenerateFromPoint}
+          onAskThis={(text) => setInputValue(text)}
         />
       </div>
 

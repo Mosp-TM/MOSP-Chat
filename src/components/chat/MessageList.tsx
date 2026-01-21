@@ -1,7 +1,14 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Loader2, Copy, Edit2, Check, ArrowUp } from "lucide-react";
+import {
+  Loader2,
+  Copy,
+  Edit2,
+  Check,
+  ArrowUp,
+  MessageSquareQuote,
+} from "lucide-react";
 import { type Message } from "../../store/appStore";
 import { Button } from "../ui/button";
 
@@ -11,6 +18,14 @@ interface MessageListProps {
   streamingContent: string;
   messagesEndRef: React.RefObject<HTMLDivElement | null>;
   onRegenerateFromPoint?: (index: number, newContent: string) => void;
+  onAskThis?: (text: string) => void;
+}
+
+interface SelectionPopup {
+  visible: boolean;
+  x: number;
+  y: number;
+  text: string;
 }
 
 const MessageList: React.FC<MessageListProps> = ({
@@ -19,10 +34,17 @@ const MessageList: React.FC<MessageListProps> = ({
   streamingContent,
   messagesEndRef,
   onRegenerateFromPoint,
+  onAskThis,
 }) => {
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editContent, setEditContent] = useState("");
+  const [selectionPopup, setSelectionPopup] = useState<SelectionPopup>({
+    visible: false,
+    x: 0,
+    y: 0,
+    text: "",
+  });
 
   const handleCopy = async (content: string, index: number) => {
     await navigator.clipboard.writeText(content);
@@ -48,8 +70,98 @@ const MessageList: React.FC<MessageListProps> = ({
     setEditContent("");
   };
 
+  const handleTextSelection = useCallback(() => {
+    const selection = window.getSelection();
+    if (!selection || selection.isCollapsed || !selection.toString().trim()) {
+      setSelectionPopup((prev) => ({ ...prev, visible: false }));
+      return;
+    }
+
+    const selectedText = selection.toString().trim();
+
+    // Check if selection is within an AI message
+    const range = selection.getRangeAt(0);
+    const container = range.commonAncestorContainer;
+    const messageElement = (
+      container.nodeType === Node.TEXT_NODE
+        ? container.parentElement
+        : (container as HTMLElement)
+    )?.closest('[data-ai-message="true"]');
+
+    if (!messageElement) {
+      setSelectionPopup((prev) => ({ ...prev, visible: false }));
+      return;
+    }
+
+    const rect = range.getBoundingClientRect();
+    const scrollContainer = document.querySelector(".flex-1.overflow-auto");
+    const containerRect = scrollContainer?.getBoundingClientRect() || {
+      left: 0,
+      top: 0,
+    };
+
+    setSelectionPopup({
+      visible: true,
+      x: rect.left + rect.width / 2 - containerRect.left,
+      y: rect.top - containerRect.top - 40,
+      text: selectedText,
+    });
+  }, []);
+
+  const handleAskThis = () => {
+    if (onAskThis && selectionPopup.text) {
+      onAskThis(selectionPopup.text);
+      setSelectionPopup((prev) => ({ ...prev, visible: false }));
+      window.getSelection()?.removeAllRanges();
+    }
+  };
+
+  useEffect(() => {
+    document.addEventListener("mouseup", handleTextSelection);
+    document.addEventListener("keyup", handleTextSelection);
+
+    return () => {
+      document.removeEventListener("mouseup", handleTextSelection);
+      document.removeEventListener("keyup", handleTextSelection);
+    };
+  }, [handleTextSelection]);
+
+  // Hide popup when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('[data-selection-popup="true"]')) {
+        setSelectionPopup((prev) => ({ ...prev, visible: false }));
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   return (
-    <div className="flex-1 overflow-auto p-4 space-y-4">
+    <div className="flex-1 overflow-auto p-4 space-y-4 relative">
+      {/* Text Selection Popup */}
+      {selectionPopup.visible && (
+        <div
+          data-selection-popup="true"
+          className="fixed z-50 bg-popover border border-border rounded-lg shadow-lg p-1 animate-in fade-in zoom-in-95"
+          style={{
+            left: `${selectionPopup.x}px`,
+            top: `${selectionPopup.y}px`,
+            transform: "translateX(-50%)",
+          }}>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="flex items-center gap-2 text-sm"
+            onClick={handleAskThis}>
+            <MessageSquareQuote className="h-4 w-4" />
+            Ask this
+          </Button>
+        </div>
+      )}
+
       {messages.length === 0 && !streamingContent && (
         <div className="h-full flex flex-col items-center justify-center text-muted-foreground opacity-50 animate__animated animate__fadeIn">
           <span className="text-4xl mb-4">💬</span>
@@ -87,6 +199,9 @@ const MessageList: React.FC<MessageListProps> = ({
             ) : (
               <>
                 <div
+                  data-ai-message={
+                    msg.role === "assistant" ? "true" : undefined
+                  }
                   className={`rounded-lg px-4 py-2 ${
                     msg.role === "user"
                       ? "bg-primary text-primary-foreground"
@@ -127,7 +242,9 @@ const MessageList: React.FC<MessageListProps> = ({
       ))}
       {loading && streamingContent && (
         <div className="flex justify-start animate__animated animate__fadeIn animate__faster">
-          <div className="bg-muted rounded-lg px-4 py-2 max-w-[75%] prose dark:prose-invert prose-sm break-words">
+          <div
+            data-ai-message="true"
+            className="bg-muted rounded-lg px-4 py-2 max-w-[75%] prose dark:prose-invert prose-sm break-words">
             <ReactMarkdown remarkPlugins={[remarkGfm]}>
               {streamingContent}
             </ReactMarkdown>
