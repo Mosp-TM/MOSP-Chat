@@ -88,6 +88,44 @@ const ChatPane: React.FC<ChatPaneProps> = ({
     scrollToBottom();
   }, [messages, streamingContent]);
 
+  const detectIntent = async (
+    msgs: Message[],
+  ): Promise<"CODING" | "GENERAL"> => {
+    try {
+      setThinkingStatus("Muradian Auto: Detecting intent...");
+      const lastMsg = msgs[msgs.length - 1];
+      const context = msgs
+        .slice(-3)
+        .map((m) => `${m.role}: ${m.content}`)
+        .join("\n");
+
+      let intent = "";
+      await chatWithOllama(
+        "deepseek-r1:1.5b",
+        [
+          {
+            role: "user",
+            content: `Analyze the following conversation context and determine if the user is asking for code, programming help, or technical implementation details. 
+          
+Context:
+${context}
+
+Respond with ONLY one word: "CODING" or "GENERAL". Do not explain.`,
+          },
+        ],
+        (chunk) => {
+          intent += chunk;
+        },
+      );
+
+      const cleanIntent = intent.trim().toUpperCase();
+      return cleanIntent.includes("CODING") ? "CODING" : "GENERAL";
+    } catch (e) {
+      console.warn("Intent detection failed, defaulting to GENERAL", e);
+      return "GENERAL";
+    }
+  };
+
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputValue.trim() || loading) return;
@@ -129,30 +167,46 @@ const ChatPane: React.FC<ChatPaneProps> = ({
         try {
           // Check for local model availability
           const isLocalAvailable = await checkOllamaRunning();
-          // Switch to cloud after 5 messages
-          // "always run in auto mode like while user start question it will use localmodel ... switch after some message"
-          const shouldTryLocal =
-            isLocalAvailable && updatedMessages.length <= 5;
+          // Switch to cloud after 5 messages, OR if intent detection requires it
+          const messageCount = updatedMessages.length;
+          const isCheckpoint =
+            messageCount === 2 || (messageCount >= 4 && messageCount % 4 === 0);
 
-          if (shouldTryLocal) {
-            activeProvider = "ollama";
-            // Attempt to get a valid local model
+          let detectedIntent = "GENERAL";
+
+          if (isLocalAvailable && isCheckpoint) {
             const localModels = await getOllamaModels();
             if (localModels.length > 0) {
-              // Prefer deepseek-r1:1.5b as default if available
-              activeModel = localModels.includes("deepseek-r1:1.5b")
-                ? "deepseek-r1:1.5b"
-                : localModels[0];
-            } else {
-              activeModel = "deepseek-r1:1.5b";
+              detectedIntent = await detectIntent(updatedMessages);
             }
-          } else {
+          }
+
+          if (detectedIntent === "CODING") {
+            setThinkingStatus("Muradian Auto: Switching to Coding Mode...");
             activeProvider = "openrouter";
-            activeModel = "google/gemini-2.0-flash-exp:free";
-            // Ensure OpenRouter key is available
-            if (!useAppStore.getState().getApiKey("openrouter")) {
-              // If no key, maybe warn or fallback?
-              // Assuming user has set it or it will fail in chatWithOpenRouter
+            activeModel = "qwen/qwen-2.5-coder-32b-instruct:free";
+          } else {
+            // Standard Logic fallback
+            const shouldTryLocal = isLocalAvailable && messageCount <= 5;
+
+            if (shouldTryLocal) {
+              activeProvider = "ollama";
+              // Attempt to get a valid local model
+              const localModels = await getOllamaModels();
+              if (localModels.length > 0) {
+                // Prefer deepseek-r1:1.5b as default if available
+                activeModel = localModels.includes("deepseek-r1:1.5b")
+                  ? "deepseek-r1:1.5b"
+                  : localModels[0];
+              } else {
+                activeModel = "deepseek-r1:1.5b";
+              }
+            } else {
+              activeProvider = "openrouter";
+              const keys = useAppStore.getState().apiKeys;
+              // If user has set a key for a specific provider, we might want to respect that?
+              // But for "Muradian Auto" we force specific free models.
+              activeModel = "google/gemini-2.0-flash-exp:free";
             }
           }
         } catch (e) {
