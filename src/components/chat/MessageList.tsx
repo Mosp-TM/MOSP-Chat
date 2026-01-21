@@ -66,12 +66,12 @@ const MessageList: React.FC<MessageListProps> = ({
       "$$$$" + "$1" + "$$$$",
     );
 
-    // Convert [ ... ] standalone math blocks (when on own line or with leading text)
-    // Match patterns like ": [ \frac{...} ]"
+    // Convert [ ... ] standalone math blocks
+    // This allows [ m = ... ] or [ \frac{...} ]
     processed = processed.replace(
-      /\[\s*(\\[a-zA-Z]+[\s\S]*?)\s*\]/g,
+      /\[\s*([\s\S]*?(\\[a-zA-Z]+)[\s\S]*?)\s*\]/g,
       (match, math) => {
-        // Check if it looks like LaTeX (contains backslash commands)
+        // If it contains backslash commands, it is likely math
         if (math.includes("\\")) {
           return "$$" + math.trim() + "$$";
         }
