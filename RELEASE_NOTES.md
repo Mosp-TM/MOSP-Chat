@@ -52,8 +52,16 @@ Since this app is not notarized by Apple, you'll see a security warning on first
 
 **Method 2: Terminal Command**
 
+To bypass the security warning for the application:
+
 ```bash
 xattr -cr /Applications/MOSP\ Chat.app
+```
+
+To bypass the security warning for the installer (DMG):
+
+```bash
+sudo xattr -cr 'MOSP Chat_0.1.0_aarch64.dmg'
 ```
 
 **Method 3: System Settings**
