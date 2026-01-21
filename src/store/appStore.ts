@@ -23,6 +23,12 @@ interface AppState {
   addChat: (chat: Chat) => void;
   setCurrentChatId: (id: string | null) => void;
   addMessage: (chatId: string, message: Message) => void;
+  editMessage: (
+    chatId: string,
+    messageIndex: number,
+    newContent: string,
+  ) => void;
+  deleteMessagesAfter: (chatId: string, messageIndex: number) => void;
   updateChatTitle: (chatId: string, title: string) => void;
   updateChatConfig: (chatId: string, config: Partial<Chat["config"]>) => void;
   deleteChat: (chatId: string) => void;
@@ -100,6 +106,34 @@ export const useAppStore = create<AppState>()(
           chats: state.chats.map((chat) =>
             chat.id === chatId
               ? { ...chat, messages: [...chat.messages, message] }
+              : chat,
+          ),
+        })),
+
+      editMessage: (chatId, messageIndex, newContent) =>
+        set((state) => ({
+          chats: state.chats.map((chat) =>
+            chat.id === chatId
+              ? {
+                  ...chat,
+                  messages: chat.messages.map((msg, idx) =>
+                    idx === messageIndex
+                      ? { ...msg, content: newContent }
+                      : msg,
+                  ),
+                }
+              : chat,
+          ),
+        })),
+
+      deleteMessagesAfter: (chatId, messageIndex) =>
+        set((state) => ({
+          chats: state.chats.map((chat) =>
+            chat.id === chatId
+              ? {
+                  ...chat,
+                  messages: chat.messages.slice(0, messageIndex + 1),
+                }
               : chat,
           ),
         })),

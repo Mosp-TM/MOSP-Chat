@@ -26,6 +26,8 @@ const ChatPane: React.FC<ChatPaneProps> = ({
     chats,
     addChat,
     addMessage,
+    editMessage,
+    deleteMessagesAfter,
     updateChatConfig,
     provider: globalProvider,
     model: globalModel,
@@ -152,6 +154,75 @@ const ChatPane: React.FC<ChatPaneProps> = ({
     }
   };
 
+  const handleRegenerateFromPoint = async (
+    index: number,
+    newContent: string,
+  ) => {
+    if (!chatId || loading) return;
+
+    // 1. Edit the message at the index
+    editMessage(chatId, index, newContent);
+
+    // 2. Delete all messages after this index
+    deleteMessagesAfter(chatId, index);
+
+    // 3. Resend to AI with the updated context
+    setLoading(true);
+    setStreamingContent("");
+
+    // Get the updated messages (up to and including the edited message)
+    const updatedMessages =
+      chats
+        .find((c) => c.id === chatId)
+        ?.messages.slice(0, index + 1)
+        .map((msg, idx) =>
+          idx === index ? { ...msg, content: newContent } : msg,
+        ) || [];
+
+    try {
+      if (provider === "ollama") {
+        const contextMessages = updatedMessages.slice(-20);
+        let accumulatedContent = "";
+
+        await chatWithOllama(model, contextMessages, (chunk) => {
+          accumulatedContent += chunk;
+          setStreamingContent(accumulatedContent);
+        });
+
+        addMessage(chatId, {
+          role: "assistant",
+          content: accumulatedContent,
+        });
+        setStreamingContent("");
+      } else if (provider === "openrouter") {
+        const apiKey = useAppStore.getState().apiKeys[provider];
+        if (!apiKey) throw new Error("API Key not found");
+
+        const contextMessages = updatedMessages.slice(-20);
+        let accumulatedContent = "";
+
+        await chatWithOpenRouter(model, apiKey, contextMessages, (chunk) => {
+          accumulatedContent += chunk;
+          setStreamingContent(accumulatedContent);
+        });
+
+        addMessage(chatId, {
+          role: "assistant",
+          content: accumulatedContent,
+        });
+        setStreamingContent("");
+      }
+    } catch (error) {
+      console.error("Chat error:", error);
+      addMessage(chatId, {
+        role: "assistant",
+        content: `Error: ${error instanceof Error ? error.message : "Failed to get response"}`,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Draggable attributes for the header to allow docking/undocking or moving
   // For now, we just make the whole pane focusable
 
@@ -206,6 +277,7 @@ const ChatPane: React.FC<ChatPaneProps> = ({
           loading={loading}
           streamingContent={streamingContent}
           messagesEndRef={messagesEndRef}
+          onRegenerateFromPoint={handleRegenerateFromPoint}
         />
       </div>
 
