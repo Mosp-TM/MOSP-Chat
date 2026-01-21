@@ -18,7 +18,7 @@ A beautiful, multi-provider AI chat application built with Tauri, React, and Typ
 
 ### macOS
 
-1. Download the latest `.dmg` from [Releases](https://github.com/your-username/mosp-chat/releases)
+1. Download the latest `.dmg` from [Releases](https://github.com/Mosp-TM/MOSP-Chat/releases)
 2. Open the DMG and drag MOSP Chat to Applications
 3. **First Launch (Important)**: Since this app isn't notarized, you need to bypass Gatekeeper:
 
@@ -31,6 +31,12 @@ A beautiful, multi-provider AI chat application built with Tauri, React, and Typ
 
    ```bash
    xattr -cr /Applications/MOSP\ Chat.app
+   ```
+
+   To bypass the security warning for the installer (DMG):
+
+   ```bash
+   sudo xattr -cr 'MOSP Chat_0.1.0_aarch64.dmg'
    ```
 
    Then open the app normally.
@@ -53,7 +59,7 @@ A beautiful, multi-provider AI chat application built with Tauri, React, and Typ
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-username/mosp-chat.git
+git clone https://github.com/Mosp-TM/MOSP-Chat.git
 cd mosp-chat
 
 # Install dependencies
