@@ -29,6 +29,7 @@ const ChatPane: React.FC<ChatPaneProps> = ({
     editMessage,
     deleteMessagesAfter,
     updateChatConfig,
+    updateChatTitle,
     provider: globalProvider,
     model: globalModel,
     layout,
@@ -42,6 +43,7 @@ const ChatPane: React.FC<ChatPaneProps> = ({
   const [inputValue, setInputValue] = useState("");
   const [loading, setLoading] = useState(false);
   const [streamingContent, setStreamingContent] = useState("");
+  const [thinkingStatus, setThinkingStatus] = useState("");
   const [openRouterModels, setOpenRouterModels] = useState<string[]>([]);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -84,7 +86,7 @@ const ChatPane: React.FC<ChatPaneProps> = ({
       // If this is the primary pane and empty, create a new chat
       const newChat = {
         id: Date.now().toString(),
-        title: inputValue.slice(0, 30) + (inputValue.length > 30 ? "..." : ""),
+        title: "New Chat",
         messages: [],
         config: { provider, model },
       };
@@ -97,6 +99,7 @@ const ChatPane: React.FC<ChatPaneProps> = ({
     setInputValue("");
     setLoading(true);
     setStreamingContent("");
+    setThinkingStatus("Understanding your message...");
 
     // Create a temporary updated message list for context
     const updatedMessages = [
@@ -106,6 +109,8 @@ const ChatPane: React.FC<ChatPaneProps> = ({
 
     try {
       if (provider === "ollama") {
+        setThinkingStatus("Thinking...");
+
         // Send last 20 messages as context
         const contextMessages = updatedMessages.slice(-20);
         let accumulatedContent = "";
@@ -113,6 +118,7 @@ const ChatPane: React.FC<ChatPaneProps> = ({
         await chatWithOllama(model, contextMessages, (chunk) => {
           accumulatedContent += chunk;
           setStreamingContent(accumulatedContent);
+          setThinkingStatus(""); // Clear thinking when streaming starts
         });
 
         addMessage(activeChatId!, {
@@ -121,20 +127,26 @@ const ChatPane: React.FC<ChatPaneProps> = ({
         });
         setStreamingContent("");
 
-        // Auto-title generation logic (simplified)
-        if (updatedMessages.length < 5) {
-          // ... existing title logic
+        // Auto-title generation after 4 messages
+        const currentMessages = [
+          ...updatedMessages,
+          { role: "assistant" as const, content: accumulatedContent },
+        ];
+        if (currentMessages.length === 4) {
+          generateTitle(activeChatId!, currentMessages);
         }
       } else if (provider === "openrouter") {
         const apiKey = useAppStore.getState().apiKeys[provider];
         if (!apiKey) throw new Error("API Key not found");
 
+        setThinkingStatus("Connecting to AI...");
         const contextMessages = updatedMessages.slice(-20);
         let accumulatedContent = "";
 
         await chatWithOpenRouter(model, apiKey, contextMessages, (chunk) => {
           accumulatedContent += chunk;
           setStreamingContent(accumulatedContent);
+          setThinkingStatus("");
         });
 
         addMessage(activeChatId!, {
@@ -142,6 +154,15 @@ const ChatPane: React.FC<ChatPaneProps> = ({
           content: accumulatedContent,
         });
         setStreamingContent("");
+
+        // Auto-title generation after 4 messages
+        const currentMessages = [
+          ...updatedMessages,
+          { role: "assistant" as const, content: accumulatedContent },
+        ];
+        if (currentMessages.length === 4) {
+          generateTitle(activeChatId!, currentMessages);
+        }
       }
     } catch (error) {
       console.error("Chat error:", error);
@@ -151,6 +172,48 @@ const ChatPane: React.FC<ChatPaneProps> = ({
       });
     } finally {
       setLoading(false);
+      setThinkingStatus("");
+    }
+  };
+
+  // Generate title from first 4 messages
+  const generateTitle = async (chatId: string, msgs: Message[]) => {
+    try {
+      const titlePrompt = `Based on this conversation, generate a very short title (max 5 words). Only respond with the title, nothing else:\n\n${msgs.map((m) => `${m.role}: ${m.content.slice(0, 100)}`).join("\n")}`;
+
+      let title = "";
+      if (provider === "ollama") {
+        await chatWithOllama(
+          model,
+          [{ role: "user", content: titlePrompt }],
+          (chunk) => {
+            title += chunk;
+          },
+        );
+      } else if (provider === "openrouter") {
+        const apiKey = useAppStore.getState().apiKeys[provider];
+        if (apiKey) {
+          await chatWithOpenRouter(
+            model,
+            apiKey,
+            [{ role: "user", content: titlePrompt }],
+            (chunk) => {
+              title += chunk;
+            },
+          );
+        }
+      }
+
+      // Clean up the title
+      title = title
+        .trim()
+        .replace(/^["']|["']$/g, "")
+        .slice(0, 50);
+      if (title) {
+        updateChatTitle(chatId, title);
+      }
+    } catch (error) {
+      console.error("Failed to generate title:", error);
     }
   };
 
@@ -276,6 +339,7 @@ const ChatPane: React.FC<ChatPaneProps> = ({
           messages={messages}
           loading={loading}
           streamingContent={streamingContent}
+          thinkingStatus={thinkingStatus}
           messagesEndRef={messagesEndRef}
           onRegenerateFromPoint={handleRegenerateFromPoint}
           onAskThis={(text) => setInputValue(text)}

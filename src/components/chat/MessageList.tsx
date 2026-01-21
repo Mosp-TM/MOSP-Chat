@@ -9,6 +9,7 @@ interface MessageListProps {
   messages: Message[];
   loading: boolean;
   streamingContent: string;
+  thinkingStatus?: string;
   messagesEndRef: React.RefObject<HTMLDivElement | null>;
   onRegenerateFromPoint?: (index: number, newContent: string) => void;
   onAskThis?: (text: string) => void;
@@ -25,6 +26,7 @@ const MessageList: React.FC<MessageListProps> = ({
   messages,
   loading,
   streamingContent,
+  thinkingStatus,
   messagesEndRef,
   onRegenerateFromPoint,
   onAskThis,
@@ -253,6 +255,12 @@ const MessageList: React.FC<MessageListProps> = ({
       {loading && !streamingContent && (
         <div className="flex justify-start animate__animated animate__fadeIn">
           <div className="bg-muted rounded-lg px-4 py-3 max-w-[75%] space-y-2 rainbow-glow-border">
+            {thinkingStatus && (
+              <div className="text-sm text-muted-foreground mb-2 flex items-center gap-2">
+                <span className="inline-block w-2 h-2 bg-primary rounded-full animate-pulse" />
+                {thinkingStatus}
+              </div>
+            )}
             <div className="h-4 bg-foreground/10 rounded animate-pulse w-48" />
             <div className="h-4 bg-foreground/10 rounded animate-pulse w-36" />
             <div className="h-4 bg-foreground/10 rounded animate-pulse w-52" />
