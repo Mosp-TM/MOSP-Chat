@@ -33,7 +33,7 @@ const MessageList: React.FC<MessageListProps> = ({
             className={`max-w-[75%] rounded-lg px-4 py-2 ${
               msg.role === "user"
                 ? "bg-primary text-primary-foreground"
-                : "bg-muted prose dark:prose-invert prose-sm max-w-none break-words"
+                : "bg-muted prose dark:prose-invert prose-sm break-words"
             }`}>
             <ReactMarkdown remarkPlugins={[remarkGfm]}>
               {msg.content}
@@ -43,7 +43,7 @@ const MessageList: React.FC<MessageListProps> = ({
       ))}
       {loading && streamingContent && (
         <div className="flex justify-start animate__animated animate__fadeIn animate__faster">
-          <div className="bg-muted rounded-lg px-4 py-2 max-w-[75%] prose dark:prose-invert prose-sm max-w-none break-words">
+          <div className="bg-muted rounded-lg px-4 py-2 max-w-[75%] prose dark:prose-invert prose-sm break-words">
             <ReactMarkdown remarkPlugins={[remarkGfm]}>
               {streamingContent}
             </ReactMarkdown>
