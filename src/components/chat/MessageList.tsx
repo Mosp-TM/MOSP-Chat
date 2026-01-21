@@ -1,7 +1,16 @@
 import React, { useState, useEffect, useCallback } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Copy, Edit2, Check, ArrowUp, MessageSquareQuote } from "lucide-react";
+import {
+  Copy,
+  Edit2,
+  Check,
+  ArrowUp,
+  MessageSquareQuote,
+  ChevronDown,
+  ChevronUp,
+  Brain,
+} from "lucide-react";
 import { type Message } from "../../store/appStore";
 import { Button } from "../ui/button";
 
@@ -9,6 +18,7 @@ interface MessageListProps {
   messages: Message[];
   loading: boolean;
   streamingContent: string;
+  streamingThinking?: string;
   thinkingStatus?: string;
   messagesEndRef: React.RefObject<HTMLDivElement | null>;
   onRegenerateFromPoint?: (index: number, newContent: string) => void;
@@ -26,6 +36,7 @@ const MessageList: React.FC<MessageListProps> = ({
   messages,
   loading,
   streamingContent,
+  streamingThinking,
   thinkingStatus,
   messagesEndRef,
   onRegenerateFromPoint,
@@ -33,6 +44,7 @@ const MessageList: React.FC<MessageListProps> = ({
 }) => {
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [showThinking, setShowThinking] = useState(true);
   const [editContent, setEditContent] = useState("");
   const [selectionPopup, setSelectionPopup] = useState<SelectionPopup>({
     visible: false,
@@ -240,15 +252,43 @@ const MessageList: React.FC<MessageListProps> = ({
           </div>
         </div>
       ))}
-      {loading && streamingContent && (
+      {loading && (streamingContent || streamingThinking) && (
         <div className="flex justify-start animate__animated animate__fadeIn animate__faster">
           <div
             data-ai-message="true"
             className="bg-muted rounded-lg px-4 py-2 max-w-[75%] prose dark:prose-invert prose-sm break-words rainbow-glow-border">
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>
-              {streamingContent}
-            </ReactMarkdown>
-            <span className="inline-block w-2 h-4 ml-1 bg-current animate-pulse" />
+            {/* Thinking section */}
+            {streamingThinking && (
+              <div className="mb-3 border-b border-border/50 pb-3">
+                <button
+                  onClick={() => setShowThinking(!showThinking)}
+                  className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors w-full">
+                  <Brain className="h-4 w-4 text-primary animate-pulse" />
+                  <span className="font-medium">AI is reasoning...</span>
+                  {showThinking ? (
+                    <ChevronUp className="h-4 w-4 ml-auto" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4 ml-auto" />
+                  )}
+                </button>
+                {showThinking && (
+                  <div className="mt-2 text-sm text-muted-foreground italic pl-6 border-l-2 border-primary/30 max-h-[200px] overflow-y-auto">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                      {streamingThinking}
+                    </ReactMarkdown>
+                  </div>
+                )}
+              </div>
+            )}
+            {/* Main response content */}
+            {streamingContent && (
+              <>
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                  {streamingContent}
+                </ReactMarkdown>
+                <span className="inline-block w-2 h-4 ml-1 bg-current animate-pulse" />
+              </>
+            )}
           </div>
         </div>
       )}

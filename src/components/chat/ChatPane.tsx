@@ -43,6 +43,7 @@ const ChatPane: React.FC<ChatPaneProps> = ({
   const [inputValue, setInputValue] = useState("");
   const [loading, setLoading] = useState(false);
   const [streamingContent, setStreamingContent] = useState("");
+  const [streamingThinking, setStreamingThinking] = useState("");
   const [thinkingStatus, setThinkingStatus] = useState("");
   const [openRouterModels, setOpenRouterModels] = useState<string[]>([]);
 
@@ -99,6 +100,7 @@ const ChatPane: React.FC<ChatPaneProps> = ({
     setInputValue("");
     setLoading(true);
     setStreamingContent("");
+    setStreamingThinking("");
     setThinkingStatus("Understanding your message...");
 
     // Create a temporary updated message list for context
@@ -114,18 +116,31 @@ const ChatPane: React.FC<ChatPaneProps> = ({
         // Send last 20 messages as context
         const contextMessages = updatedMessages.slice(-20);
         let accumulatedContent = "";
+        let accumulatedThinking = "";
 
-        await chatWithOllama(model, contextMessages, (chunk) => {
-          accumulatedContent += chunk;
-          setStreamingContent(accumulatedContent);
-          setThinkingStatus(""); // Clear thinking when streaming starts
-        });
+        await chatWithOllama(
+          model,
+          contextMessages,
+          // onChunk - for main content
+          (chunk) => {
+            accumulatedContent += chunk;
+            setStreamingContent(accumulatedContent);
+            setThinkingStatus("");
+          },
+          // onThinkingChunk - for thinking content
+          (thinkChunk) => {
+            accumulatedThinking += thinkChunk;
+            setStreamingThinking(accumulatedThinking);
+            setThinkingStatus("Reasoning...");
+          },
+        );
 
         addMessage(activeChatId!, {
           role: "assistant",
           content: accumulatedContent,
         });
         setStreamingContent("");
+        setStreamingThinking("");
 
         // Auto-title generation after 4 messages
         const currentMessages = [
@@ -339,6 +354,7 @@ const ChatPane: React.FC<ChatPaneProps> = ({
           messages={messages}
           loading={loading}
           streamingContent={streamingContent}
+          streamingThinking={streamingThinking}
           thinkingStatus={thinkingStatus}
           messagesEndRef={messagesEndRef}
           onRegenerateFromPoint={handleRegenerateFromPoint}
