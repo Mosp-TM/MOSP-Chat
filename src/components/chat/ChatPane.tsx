@@ -57,6 +57,7 @@ const ChatPane: React.FC<ChatPaneProps> = ({
   const [streamingThinking, setStreamingThinking] = useState("");
   const [thinkingStatus, setThinkingStatus] = useState("");
   const [openRouterModels, setOpenRouterModels] = useState<string[]>([]);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -126,6 +127,15 @@ Respond with ONLY one word: "CODING" or "GENERAL". Do not explain.`,
     }
   };
 
+  const handleStop = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+    setLoading(false);
+    setThinkingStatus("");
+  };
+
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputValue.trim() || loading) return;
@@ -143,6 +153,13 @@ Respond with ONLY one word: "CODING" or "GENERAL". Do not explain.`,
       addChat(newChat);
       activeChatId = newChat.id;
     }
+
+    // Create new abort controller
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort(); // Cancel previous if any
+    }
+    abortControllerRef.current = new AbortController();
+    const signal = abortControllerRef.current.signal;
 
     const userMsg: Message = { role: "user", content: inputValue };
     addMessage(activeChatId!, userMsg);
@@ -224,7 +241,7 @@ Respond with ONLY one word: "CODING" or "GENERAL". Do not explain.`,
         const systemMessage = {
           role: "system" as const, // Fix TS issue with string vs literal
           content:
-            "When writing math equations, use $$ ... $$ for display math and $ ... $ for inline math. For example: $$E = mc^2$$ or $x^2$. Do not use [ ] brackets for math.",
+            "You are a helpful assistant Simple and. Usage: Use note : if math ? then use $$ ... $$ for display math and $ ... $ for inline math. Use note : if math ? then use $$ ... $$ for display math and $ ... $ for inline math.",
         };
 
         // Send last 20 messages as context with system message
@@ -540,6 +557,7 @@ Respond with ONLY one word: "CODING" or "GENERAL". Do not explain.`,
         inputValue={inputValue}
         setInputValue={setInputValue}
         handleSend={handleSend}
+        handleStop={handleStop}
         loading={loading}
         provider={provider}
         model={model}

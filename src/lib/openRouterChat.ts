@@ -3,6 +3,7 @@ export async function chatWithOpenRouter(
   apiKey: string,
   messages: Array<{ role: string; content: string }>,
   onChunk?: (chunk: string) => void,
+  signal?: AbortSignal,
 ): Promise<string> {
   try {
     const response = await fetch(
@@ -20,6 +21,7 @@ export async function chatWithOpenRouter(
           messages,
           stream: true,
         }),
+        signal,
       },
     );
 

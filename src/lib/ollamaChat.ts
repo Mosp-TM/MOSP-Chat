@@ -3,6 +3,7 @@ export async function chatWithOllama(
   messages: Array<{ role: string; content: string }>,
   onChunk?: (chunk: string) => void,
   onThinkingChunk?: (chunk: string) => void,
+  signal?: AbortSignal,
 ): Promise<string> {
   try {
     // Check if model is a thinking model (like deepseek-r1)
@@ -21,6 +22,7 @@ export async function chatWithOllama(
         stream: true,
         ...(isThinkingModel && { think: true }),
       }),
+      signal,
     });
 
     if (!response.ok) {

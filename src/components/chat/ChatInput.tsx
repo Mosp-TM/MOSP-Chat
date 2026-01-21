@@ -13,6 +13,7 @@ interface ChatInputProps {
   model: string;
   models: string[];
   setModel: (model: string) => void;
+  handleStop?: () => void;
 }
 
 const ChatInput: React.FC<ChatInputProps> = ({
@@ -24,6 +25,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
   model,
   models,
   setModel,
+  handleStop,
 }) => {
   return (
     <div className="p-4 bg-background">
@@ -80,13 +82,26 @@ const ChatInput: React.FC<ChatInputProps> = ({
                 className="rounded-full h-8 w-8 text-muted-foreground hover:bg-muted">
                 <Paperclip className="h-4 w-4" />
               </Button>
-              <Button
-                type="submit"
-                disabled={loading || !inputValue.trim()}
-                className="rounded-full h-8 w-8 p-0">
-                <ArrowUp className="h-4 w-4" />
-                <span className="sr-only">Send</span>
-              </Button>
+              {loading ? (
+                <Button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    if (handleStop) handleStop();
+                  }}
+                  className="rounded-full h-8 w-8 p-0 bg-red-500 hover:bg-red-600 text-white">
+                  <div className="h-3 w-3 bg-current rounded-[2px]" />
+                  <span className="sr-only">Stop</span>
+                </Button>
+              ) : (
+                <Button
+                  type="submit"
+                  disabled={!inputValue.trim()}
+                  className="rounded-full h-8 w-8 p-0">
+                  <ArrowUp className="h-4 w-4" />
+                  <span className="sr-only">Send</span>
+                </Button>
+              )}
             </div>
           </div>
         </form>
