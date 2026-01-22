@@ -7,12 +7,69 @@ A beautiful, multi-provider AI chat application built with Tauri, React, and Typ
 ## Features
 
 - 🤖 **Multi-Provider Support**: Connect to Ollama (local), OpenRouter, OpenAI, Anthropic, or Google Gemini
+- 🧠 **Muradian Auto**: Intelligent AI routing that automatically selects the best model based on your question
 - 💬 **Split View**: Chat with two AI models side-by-side
 - 🎨 **Dark/Light Mode**: Automatic theme switching based on system preferences
 - ⚡ **Fast & Lightweight**: Native desktop app powered by Tauri (~10MB)
 - 🔒 **Privacy First**: All local Ollama chats stay on your machine
 - 📝 **Markdown Support**: Beautiful rendering of code blocks, lists, and formatting
 - 🔄 **Auto Model Download**: Automatically download Ollama models with one click
+
+## Muradian Auto: Intelligent AI Routing
+
+Muradian Auto is our smart provider that automatically detects the type of question you're asking and routes it to the most appropriate AI model. No more switching models manually!
+
+### How It Works
+
+```mermaid
+flowchart TD
+    Start[User sends message] --> Check{Muradian Auto<br/>provider?}
+    Check -->|No| Standard[Use selected provider]
+    Check -->|Yes| Analyze[Analyze conversation<br/>every 2-4 messages]
+
+    Analyze --> Intent{Detected<br/>Intent}
+
+    Intent -->|CODING| Code[qwen-coder<br/>Programming expert]
+    Intent -->|MATH| Math[deepseek-r1<br/>Mathematical reasoning]
+    Intent -->|SCIENCE| Science[gemini-pro<br/>Scientific analysis]
+    Intent -->|CREATIVE| Creative[llama-3.3<br/>Creative writing]
+    Intent -->|ANALYSIS| Analysis[gemini-pro<br/>Analytical thinking]
+    Intent -->|GENERAL| General[Local/gemini-flash<br/>Fast responses]
+
+    Code --> Response[Generate response]
+    Math --> Response
+    Science --> Response
+    Creative --> Response
+    Analysis --> Response
+    General --> Response
+    Standard --> Response
+
+    Response --> End[Display to user]
+```
+
+### Intent Categories
+
+| Category        | Triggers                           | AI Model               | Best For                                       |
+| --------------- | ---------------------------------- | ---------------------- | ---------------------------------------------- |
+| 🖥️ **CODING**   | Programming, algorithms, debugging | `qwen-2.5-coder-32b`   | Writing code, fixing bugs, API usage           |
+| 🔢 **MATH**     | Equations, calculations, proofs    | `deepseek-r1`          | Mathematical reasoning, step-by-step solutions |
+| 🔬 **SCIENCE**  | Physics, chemistry, biology        | `gemini-2.0-pro`       | Scientific explanations, research questions    |
+| ✍️ **CREATIVE** | Writing, storytelling, poetry      | `llama-3.3-70b`        | Creative content, narratives, art              |
+| 📊 **ANALYSIS** | Research, comparisons, evaluation  | `gemini-2.0-pro`       | Critical thinking, data analysis               |
+| 💬 **GENERAL**  | Casual chat, everyday questions    | Local + `gemini-flash` | Quick responses, general conversation          |
+
+### Example Usage
+
+Simply select "Muradian Auto" as your provider and ask any question:
+
+- ❓ "How do I implement a binary search in Python?" → **CODING mode**
+- ❓ "What's the derivative of x³?" → **MATH mode**
+- ❓ "Explain photosynthesis" → **SCIENCE mode**
+- ❓ "Write a short story about space" → **CREATIVE mode**
+- ❓ "Compare React vs Vue" → **ANALYSIS mode**
+- ❓ "Hi, how are you?" → **GENERAL mode**
+
+The system analyzes your conversation every 2-4 messages and automatically switches to the optimal model!
 
 ## Installation
 

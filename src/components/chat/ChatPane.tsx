@@ -127,11 +127,17 @@ const ChatPane: React.FC<ChatPaneProps> = ({
     scrollToBottom();
   }, [messages, streamingContent]);
 
-  const detectIntent = async (
-    msgs: Message[],
-  ): Promise<"CODING" | "GENERAL"> => {
+  type IntentCategory =
+    | "CODING"
+    | "MATH"
+    | "SCIENCE"
+    | "CREATIVE"
+    | "ANALYSIS"
+    | "GENERAL";
+
+  const detectIntent = async (msgs: Message[]): Promise<IntentCategory> => {
     try {
-      setThinkingStatus("Muradian Auto: Detecting intent...");
+      setThinkingStatus("Muradian Auto: Analyzing conversation...");
       const context = msgs
         .slice(-10)
         .map((m) => `${m.role}: ${m.content}`)
@@ -143,12 +149,19 @@ const ChatPane: React.FC<ChatPaneProps> = ({
         [
           {
             role: "user",
-            content: `Analyze the following conversation context and determine if the user is asking for code, programming help, or technical implementation details. 
-          
+            content: `Analyze this conversation and classify it into ONE category:
+
+- CODING: Programming, algorithms, debugging, code implementation, software development, APIs, frameworks
+- MATH: Mathematics, equations, calculations, proofs, statistics, algebra, calculus, geometry
+- SCIENCE: Physics, chemistry, biology, scientific research, experiments, scientific concepts
+- CREATIVE: Writing, storytelling, poetry, art, content creation, creative projects
+- ANALYSIS: Research, data analysis, critical thinking, evaluation, comparison, decision-making
+- GENERAL: Casual conversation, everyday questions, general topics, greetings, chitchat
+
 Context:
 ${context}
 
-Respond with ONLY one word: "CODING" or "GENERAL". Do not explain.`,
+Respond with ONLY the category name (CODING, MATH, SCIENCE, CREATIVE, ANALYSIS, or GENERAL). No explanation.`,
           },
         ],
         (chunk) => {
@@ -157,7 +170,15 @@ Respond with ONLY one word: "CODING" or "GENERAL". Do not explain.`,
       );
 
       const cleanIntent = intent.trim().toUpperCase();
-      return cleanIntent.includes("CODING") ? "CODING" : "GENERAL";
+
+      // Match intent with priority (check most specific first)
+      if (cleanIntent.includes("CODING")) return "CODING";
+      if (cleanIntent.includes("MATH")) return "MATH";
+      if (cleanIntent.includes("SCIENCE")) return "SCIENCE";
+      if (cleanIntent.includes("CREATIVE")) return "CREATIVE";
+      if (cleanIntent.includes("ANALYSIS")) return "ANALYSIS";
+
+      return "GENERAL";
     } catch (e) {
       console.warn("Intent detection failed, defaulting to GENERAL", e);
       return "GENERAL";
@@ -235,10 +256,27 @@ Respond with ONLY one word: "CODING" or "GENERAL". Do not explain.`,
             }
           }
 
+          // Route to specialized models based on intent
           if (detectedIntent === "CODING") {
-            setThinkingStatus("Muradian Auto: Switching to Coding Mode...");
+            setThinkingStatus("Muradian Auto: Coding mode activated...");
             activeProvider = "openrouter";
             activeModel = "qwen/qwen-2.5-coder-32b-instruct:free";
+          } else if (detectedIntent === "MATH") {
+            setThinkingStatus("Muradian Auto: Math reasoning mode...");
+            activeProvider = "openrouter";
+            activeModel = "deepseek/deepseek-r1:free";
+          } else if (detectedIntent === "SCIENCE") {
+            setThinkingStatus("Muradian Auto: Science mode activated...");
+            activeProvider = "openrouter";
+            activeModel = "google/gemini-2.0-pro-exp-02-05:free";
+          } else if (detectedIntent === "CREATIVE") {
+            setThinkingStatus("Muradian Auto: Creative mode activated...");
+            activeProvider = "openrouter";
+            activeModel = "meta-llama/llama-3.3-70b-instruct:free";
+          } else if (detectedIntent === "ANALYSIS") {
+            setThinkingStatus("Muradian Auto: Analysis mode activated...");
+            activeProvider = "openrouter";
+            activeModel = "google/gemini-2.0-pro-exp-02-05:free";
           } else {
             // Standard Logic fallback
             const shouldTryLocal = isLocalAvailable && messageCount <= 5;
@@ -277,7 +315,7 @@ Respond with ONLY one word: "CODING" or "GENERAL". Do not explain.`,
         const systemMessage = {
           role: "system" as const, // Fix TS issue with string vs literal
           content:
-            "You are a helpful assistant Simple and. Usage: Use note : if math ? then use $$ ... $$ for display math and $ ... $ for inline math. Use note : if math ? then use $$ ... $$ for display math and $ ... $ for inline math.",
+            "You are a helpful, friendly, and professional 'MOSP TM' AI assistant. Respond naturally to greetings and casual conversation. When providing mathematical content, use LaTeX formatting: $$ ... $$ for display math (on its own line) and $ ... $ for inline math (within text). Be concise and helpful.",
         };
 
         // Send last 20 messages as context with system message
