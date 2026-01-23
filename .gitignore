@@ -24,4 +24,4 @@ dist-ssr
 *.sw?
 *.env
 
-src/secret/
+src/secret/api.ts
