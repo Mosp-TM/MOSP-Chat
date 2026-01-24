@@ -241,10 +241,10 @@ const MessageList: React.FC<MessageListProps> = ({
                   data-ai-message={
                     msg.role === "assistant" ? "true" : undefined
                   }
-                  className={`rounded-lg px-4 py-2 ${
+                  className={`rounded-3xl px-6 py-4 shadow-sm ${
                     msg.role === "user"
-                      ? "bg-primary text-primary-foreground"
-                      : `w-full bg-muted prose dark:prose-invert prose-sm break-words max-w-none ${
+                      ? "bg-gradient-to-br from-primary to-violet-600 text-white font-medium text-base ml-auto rounded-tr-sm shadow-md shadow-primary/20"
+                      : `w-full bg-background/40 dark:bg-muted/20 backdrop-blur-md border border-border/40 prose dark:prose-invert prose-base break-words max-w-none rounded-tl-sm ${
                           // Add rainbow glow to the last AI message
                           i === messages.length - 1 && msg.role === "assistant"
                             ? "rainbow-glow-border"
@@ -322,7 +322,7 @@ const MessageList: React.FC<MessageListProps> = ({
           <div className="relative w-full md:max-w-[65%]">
             <div
               data-ai-message="true"
-              className="w-full bg-muted rounded-lg px-4 py-2 prose dark:prose-invert prose-sm break-words max-w-none rainbow-glow-border">
+              className="w-full bg-background/40 dark:bg-muted/20 backdrop-blur-md border border-border/40 rounded-3xl rounded-tl-sm px-6 py-4 prose dark:prose-invert prose-base break-words max-w-none rainbow-glow-border">
               {/* Thinking section */}
               {streamingThinking && (
                 <div className="mb-3 border-b border-border/50 pb-3">
@@ -365,7 +365,7 @@ const MessageList: React.FC<MessageListProps> = ({
       )}
       {loading && !streamingContent && (
         <div className="flex justify-start animate__animated animate__fadeIn">
-          <div className="bg-muted rounded-lg px-4 py-3 w-full md:max-w-[65%] space-y-2 rainbow-glow-border">
+          <div className="bg-muted/30 backdrop-blur-sm rounded-3xl rounded-tl-sm px-6 py-4 w-full md:max-w-[65%] space-y-3 rainbow-glow-border border border-border/40">
             {thinkingStatus && (
               <div className="text-sm text-muted-foreground mb-2 flex items-center gap-2">
                 <span className="inline-block w-2 h-2 bg-primary rounded-full animate-pulse" />

@@ -164,7 +164,7 @@ const SettingsDialog: React.FC = () => {
     <>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogTrigger>
-          <div className="flex items-center justify-center p-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 w-full">
+          <div className="flex items-center justify-center p-2.5 rounded-xl hover:bg-accent text-muted-foreground hover:text-foreground w-full transition-all duration-200 hover:shadow-sm ring-1 ring-transparent hover:ring-border/50">
             <SettingsIcon className="h-5 w-5" />
             <span className="sr-only">Settings</span>
           </div>

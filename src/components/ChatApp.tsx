@@ -17,6 +17,7 @@ import {
   ResizableHandle,
 } from "./ui/resizable";
 import { Plus } from "lucide-react";
+import SplashScreen from "./SplashScreen";
 
 const ChatApp: React.FC = () => {
   const {
@@ -85,6 +86,7 @@ const ChatApp: React.FC = () => {
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}>
       <div className="flex h-screen bg-background overflow-hidden">
+        <SplashScreen />
         {!hasCompletedSetup ? (
           <ProviderDialog open={true} />
         ) : (

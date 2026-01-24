@@ -38,17 +38,19 @@ const Sidebar: React.FC = () => {
   return (
     <div
       className={`${
-        isSidebarOpen ? "w-64" : "w-[70px]"
-      } border-r bg-muted/20 flex flex-col h-full transition-all duration-300 ease-in-out`}>
+        isSidebarOpen ? "w-72" : "w-[90px]"
+      } bg-muted/30 backdrop-blur-xl flex flex-col h-full transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] z-20`}>
       <div className="p-4">
         <Button
           onClick={handleNewChat}
-          className={`w-full flex items-center gap-2 justify-center  bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow hover:bg-primary/90 ${
-            !isSidebarOpen && "px-2"
+          className={`w-full flex items-center gap-2 justify-center bg-primary/90 hover:bg-primary text-primary-foreground shadow-lg transition-all duration-300 rounded-xl py-6 ${
+            !isSidebarOpen && "px-0 w-12 h-12 mx-auto"
           }`}
           title="New Chat">
-          <Plus className="h-4 w-4" />
-          {isSidebarOpen && <span>New Chat</span>}
+          <Plus className="h-5 w-5" />
+          {isSidebarOpen && (
+            <span className="text-base font-semibold">New Chat</span>
+          )}
         </Button>
       </div>
 
@@ -67,14 +69,14 @@ const Sidebar: React.FC = () => {
 
       <div className="p-4 border-t flex flex-col gap-2">
         <div
-          className={`flex items-center gap-2 ${!isSidebarOpen && "flex-col"}`}>
+          className={`flex items-center gap-2 justify-between ${!isSidebarOpen && "flex-col gap-4"}`}>
           <div
             className={`${!isSidebarOpen ? "w-full flex justify-center" : "flex-1"}`}>
             <SettingsDialog />
           </div>
           <button
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-            className="p-2 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-md text-slate-500 transition-colors"
+            className="p-2.5 hover:bg-accent rounded-xl text-muted-foreground hover:text-foreground transition-all duration-200 hover:shadow-sm ring-1 ring-transparent hover:ring-border/50"
             title="Toggle Theme">
             {theme === "dark" ? (
               <Sun className="h-5 w-5" />
@@ -84,7 +86,7 @@ const Sidebar: React.FC = () => {
           </button>
           <button
             onClick={toggleSidebar}
-            className="p-2 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-md text-slate-500 transition-colors"
+            className="p-2.5 hover:bg-accent rounded-xl text-muted-foreground hover:text-foreground transition-all duration-200 hover:shadow-sm ring-1 ring-transparent hover:ring-border/50"
             title={isSidebarOpen ? "Collapse Sidebar" : "Expand Sidebar"}>
             {isSidebarOpen ? (
               <ChevronsLeft className="h-5 w-5" />
@@ -135,11 +137,13 @@ const DraggableChatItem: React.FC<DraggableChatItemProps> = ({
   return (
     <div
       ref={setNodeRef}
-      className={`group w-full flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors hover:bg-muted animate__animated animate__fadeIn animate__faster ${
-        isActive ? "bg-muted font-medium" : ""
-      } ${!isSidebarOpen && "justify-center px-2"} ${
-        isDragging ? "opacity-50" : ""
-      } ${isInSplit ? "bg-primary/10 border-l-2 border-primary" : ""}`}>
+      className={`group w-full flex items-center gap-2 rounded-2xl px-3 py-3 text-sm transition-all duration-300 cursor-pointer mb-1 ${
+        isActive
+          ? "bg-primary/10 text-primary font-medium shadow-none"
+          : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+      } ${!isSidebarOpen && "justify-center px-0 w-12 h-12 mx-auto aspect-square rounded-2xl"} ${
+        isDragging ? "opacity-50 scale-95" : ""
+      } ${isInSplit ? "bg-primary/5 ring-1 ring-primary/20" : ""}`}>
       {/* Drag handle - only this element triggers drag */}
       <div
         {...listeners}

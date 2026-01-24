@@ -24,6 +24,7 @@ const FREE_MODELS = [
   "google/gemini-2.0-pro-exp-02-05:free",
   "meta-llama/llama-3.3-70b-instruct:free",
   "deepseek/deepseek-r1:free",
+  "chatgpt/gpt-4o",
   "qwen/qwen-2.5-coder-32b-instruct:free",
   "mistralai/mistral-small-24b-instruct-2501:free",
 ];
@@ -630,11 +631,18 @@ Respond with ONLY the category name (CODING, MATH, SCIENCE, CREATIVE, ANALYSIS, 
       <div
         className={`flex-1 flex flex-col h-full relative border-l ${isActive ? "ring-2 ring-primary/10" : ""}`}
         onClick={onFocus}>
-        <div className="flex-1 overflow-auto p-4 space-y-4">
+        <div className="flex-1 overflow-auto p-4 space-y-4 relative z-10 w-full mb-10">
           <div className="h-full flex flex-col items-center justify-center text-muted-foreground opacity-50">
             <span className="text-4xl mb-4">💬</span>
             <p>Start a conversation...</p>
           </div>
+        </div>
+
+        {/* Premium CSS Background - Empty State */}
+        <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
+          <div className="absolute top-0 left-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl mix-blend-multiply filter dark:mix-blend-screen dark:bg-purple-900/20 animate-blob" />
+          <div className="absolute top-0 right-1/4 w-96 h-96 bg-yellow-500/10 rounded-full blur-3xl mix-blend-multiply filter dark:mix-blend-screen dark:bg-indigo-900/20 animate-blob animation-delay-2000" />
+          <div className="absolute -bottom-8 left-1/3 w-96 h-96 bg-pink-500/10 rounded-full blur-3xl mix-blend-multiply filter dark:mix-blend-screen dark:bg-blue-900/20 animate-blob animation-delay-4000" />
         </div>
 
         <ChatInput
@@ -657,7 +665,13 @@ Respond with ONLY the category name (CODING, MATH, SCIENCE, CREATIVE, ANALYSIS, 
     <div
       className={`flex-1 flex flex-col h-full relative border-l ${isActive ? "ring-2 ring-primary/10" : ""}`}
       onClick={onFocus}>
-      <div className="flex-1 overflow-auto p-4 space-y-4 relative">
+      <div className="flex-1 overflow-auto p-4 space-y-4 relative z-10">
+        {/* Premium CSS Background - Active State */}
+        <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+          <div className="absolute top-0 left-1/4 w-96 h-96 bg-purple-500/5 rounded-full blur-3xl mix-blend-multiply filter dark:mix-blend-screen dark:bg-purple-900/10 animate-blob" />
+          <div className="absolute top-0 right-1/4 w-96 h-96 bg-yellow-500/5 rounded-full blur-3xl mix-blend-multiply filter dark:mix-blend-screen dark:bg-indigo-900/10 animate-blob animation-delay-2000" />
+          <div className="absolute -bottom-8 left-1/3 w-96 h-96 bg-pink-500/5 rounded-full blur-3xl mix-blend-multiply filter dark:mix-blend-screen dark:bg-blue-900/10 animate-blob animation-delay-4000" />
+        </div>
         {setupProgress && (
           <div className="sticky top-0 z-50 w-full bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b p-2 mb-2 flex items-center justify-center gap-2 animate-in slide-in-from-top-2">
             <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
