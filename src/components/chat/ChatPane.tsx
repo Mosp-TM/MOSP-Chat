@@ -42,6 +42,7 @@ const ChatPane: React.FC<ChatPaneProps> = ({
     deleteMessagesAfter,
     updateChatConfig,
     updateChatTitle,
+    updateChatRules,
     provider: globalProvider,
     model: globalModel,
     layout,
@@ -312,10 +313,17 @@ Respond with ONLY the category name (CODING, MATH, SCIENCE, CREATIVE, ANALYSIS, 
         setThinkingStatus("Thinking...");
 
         // System message for proper formatting
+        // System message for proper formatting
+        let systemContent =
+          "You are a helpful, friendly, and professional 'MOSP TM' AI assistant. Respond naturally to greetings and casual conversation. When providing mathematical content, use LaTeX formatting: $$ ... $$ for display math (on its own line) and $ ... $ for inline math (within text). Be concise and helpful.";
+
+        if (currentChat?.rules) {
+          systemContent += `\n\nIMPORTANT RULES FOR THIS CHAT:\n${currentChat.rules}`;
+        }
+
         const systemMessage = {
           role: "system" as const, // Fix TS issue with string vs literal
-          content:
-            "You are a helpful, friendly, and professional 'MOSP TM' AI assistant. Respond naturally to greetings and casual conversation. When providing mathematical content, use LaTeX formatting: $$ ... $$ for display math (on its own line) and $ ... $ for inline math (within text). Be concise and helpful.",
+          content: systemContent,
         };
 
         // Send last 20 messages as context with system message
@@ -372,6 +380,16 @@ Respond with ONLY the category name (CODING, MATH, SCIENCE, CREATIVE, ANALYSIS, 
 
         setThinkingStatus("Connecting to AI...");
         const contextMessages = updatedMessages.slice(-20);
+
+        if (currentChat?.rules) {
+          const rulesMessage = {
+            role: "system" as const,
+            content: `IMPORTANT RULES FOR THIS CHAT:\n${currentChat.rules}`,
+          };
+          // Prepend rules message
+          contextMessages.unshift(rulesMessage);
+        }
+
         let accumulatedContent = "";
 
         if (provider === "muradian") {
@@ -628,6 +646,8 @@ Respond with ONLY the category name (CODING, MATH, SCIENCE, CREATIVE, ANALYSIS, 
           model={model}
           models={openRouterModels}
           setModel={setModel}
+          rules={currentChat?.rules}
+          onUpdateRules={(rules) => chatId && updateChatRules(chatId, rules)}
         />
       </div>
     );
@@ -668,6 +688,8 @@ Respond with ONLY the category name (CODING, MATH, SCIENCE, CREATIVE, ANALYSIS, 
         model={model}
         models={openRouterModels}
         setModel={setModel}
+        rules={currentChat?.rules}
+        onUpdateRules={(rules) => chatId && updateChatRules(chatId, rules)}
       />
     </div>
   );

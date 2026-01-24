@@ -1,8 +1,16 @@
 import React from "react";
 import { Textarea } from "../ui/textarea";
 import { Button } from "../ui/button";
-import { Paperclip, ArrowUp } from "lucide-react";
+import { Paperclip, ArrowUp, Book } from "lucide-react";
 import ModelSelector from "./ModelSelector";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+} from "../ui/dialog";
 
 interface ChatInputProps {
   inputValue: string;
@@ -14,6 +22,8 @@ interface ChatInputProps {
   models: string[];
   setModel: (model: string) => void;
   handleStop?: () => void;
+  rules?: string;
+  onUpdateRules?: (rules: string) => void;
 }
 
 const ChatInput: React.FC<ChatInputProps> = ({
@@ -26,7 +36,24 @@ const ChatInput: React.FC<ChatInputProps> = ({
   models,
   setModel,
   handleStop,
+  rules = "",
+  onUpdateRules,
 }) => {
+  const [localRules, setLocalRules] = React.useState(rules);
+  const [isDialogOpen, setIsDialogOpen] = React.useState(false);
+
+  React.useEffect(() => {
+    setLocalRules(rules);
+  }, [rules]);
+
+  const handleSaveRules = (e: React.FormEvent) => {
+    e.preventDefault(); // Prevent form submission if inside a form
+    if (onUpdateRules) {
+      onUpdateRules(localRules);
+    }
+    setIsDialogOpen(false);
+  };
+
   return (
     <div className="p-2 bg-background">
       <div className="w-full">
@@ -54,6 +81,41 @@ const ChatInput: React.FC<ChatInputProps> = ({
               models={models}
               setModel={setModel}
             />
+
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <DialogTrigger asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className={`rounded-full h-8 w-8 hover:bg-muted ${rules ? "text-primary" : "text-muted-foreground"}`}
+                  title="Chat Rules">
+                  <Book className="h-4 w-4" />
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Chat Rules</DialogTitle>
+                </DialogHeader>
+                <div className="py-4">
+                  <p className="text-sm text-muted-foreground mb-2">
+                    Set specific instructions or rules for this chat (e.g.,
+                    "Always code in Python", "Be concise").
+                  </p>
+                  <Textarea
+                    value={localRules}
+                    onChange={(e) => setLocalRules(e.target.value)}
+                    placeholder="Enter chat rules..."
+                    className="min-h-[150px]"
+                  />
+                </div>
+                <DialogFooter>
+                  <Button onClick={handleSaveRules} type="button">
+                    Save Rules
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
 
             <Button
               type="button"
@@ -84,11 +146,6 @@ const ChatInput: React.FC<ChatInputProps> = ({
             )}
           </div>
         </form>
-
-        {/* <div className="mt-2 text-center text-xs text-muted-foreground">
-                  Context:{" "}
-                  <span className="font-mono">{messages.length} messages</span>
-                </div> */}
       </div>
     </div>
   );

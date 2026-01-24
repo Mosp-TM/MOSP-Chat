@@ -31,6 +31,7 @@ interface AppState {
   ) => void;
   deleteMessagesAfter: (chatId: string, messageIndex: number) => void;
   updateChatTitle: (chatId: string, title: string) => void;
+  updateChatRules: (chatId: string, rules: string) => void;
   updateChatConfig: (chatId: string, config: Partial<Chat["config"]>) => void;
   deleteChat: (chatId: string) => void;
   isSidebarOpen: boolean;
@@ -54,10 +55,11 @@ interface Chat {
     provider: string;
     model: string;
   };
+  rules?: string;
 }
 
 interface Message {
-  role: "user" | "assistant";
+  role: "user" | "assistant" | "system";
   content: string;
   thinking?: string;
   model?: string;
@@ -145,6 +147,13 @@ export const useAppStore = create<AppState>()(
         set((state) => ({
           chats: state.chats.map((chat) =>
             chat.id === chatId ? { ...chat, title } : chat,
+          ),
+        })),
+
+      updateChatRules: (chatId, rules) =>
+        set((state) => ({
+          chats: state.chats.map((chat) =>
+            chat.id === chatId ? { ...chat, rules } : chat,
           ),
         })),
 
